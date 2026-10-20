@@ -1,0 +1,5 @@
+order number: 2000 (exact — use for IDs)
+page views:   1000 (scales under contention — use for metrics)
+CAS PENDING->PAID:  true, now PAID
+CAS PENDING->FAILED: false (it is no longer PENDING)
+accumulateAndGet(max): 450

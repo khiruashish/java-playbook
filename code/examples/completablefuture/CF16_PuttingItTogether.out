@@ -1,0 +1,2 @@
+OrderView[stock=in stock, price=₹60, slot=next available slot]
+answered in about 500 ms even though one dependency took 3 s

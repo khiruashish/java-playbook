@@ -1,0 +1,9 @@
+MILK-1L    hashCode= 1780701485  spread= 1780691726  bucket=14
+RICE-5KG   hashCode= -771911331  spread= -771932000  bucket= 0
+ATTA-10KG  hashCode=-2008383608  spread=-2008352830  bucket= 2
+DAL-1KG    hashCode=-2141786641  spread=-2141819463  bucket= 9
+SUGAR-1KG  hashCode=-1353576426  spread=-1353531580  bucket= 4
+
+Why spread? Two hash codes that differ only in their HIGH bits:
+  without spreading -> buckets 0 and 0 (they collide)
+  with spreading    -> buckets 1 and 2

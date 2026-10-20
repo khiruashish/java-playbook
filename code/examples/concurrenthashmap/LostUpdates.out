@@ -1,0 +1,4 @@
+expected                          16,000
+HashMap, get then put              2,002   <- lost updates
+ConcurrentHashMap, get then put    2,001   <- STILL lost: two calls, not one
+ConcurrentHashMap.merge           16,000   <- exact: one atomic operation

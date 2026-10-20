@@ -1,0 +1,12 @@
+# Modern Java Enterprise Handbook — docs toolchain
+# Verified with `mkdocs build --strict` (September 2026).
+#
+# Keep MkDocs on 1.x: MkDocs 2.0 removes the plugin system and rewrites theming,
+# which breaks Material for MkDocs. Do not upgrade past 1.x without checking.
+mkdocs==1.6.1
+mkdocs-material==9.7.6
+pymdown-extensions==10.21.2
+
+# PDF: use tools/build-pdf.py (tested; see README). The print-site plugin below is an
+# untested alternative — uncomment together with its block in mkdocs.yml.
+# mkdocs-print-site-plugin==2.6.0

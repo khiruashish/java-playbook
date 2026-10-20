@@ -1,0 +1,4 @@
+or(): ₹60
+ifPresentOrElse: cache miss
+stream() flattens: [₹60, ₹450]
+orElseThrow(): ₹60

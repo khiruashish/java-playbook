@@ -1,0 +1,4 @@
+default charset: UTF-8
+file.encoding:   UTF-8
+so new FileReader(file) and String.getBytes() now mean UTF-8 on every platform.
+Also in Java 18: a built-in static file server —  jwebserver -p 8000

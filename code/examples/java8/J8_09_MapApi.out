@@ -1,0 +1,6 @@
+getOrDefault(JAM, 0)    = 0
+after putIfAbsent       = {MILK=40, RICE=12, TEA=25}
+after merge             = {DAL=5, MILK=40, RICE=17, TEA=25}
+computeIfPresent -> null= {DAL=5, MILK=40, RICE=17}
+computeIfAbsent (multimap) = {asha=[O1, O2], ravi=[O3]}
+DAL=10 MILK=80 RICE=34

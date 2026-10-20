@@ -1,0 +1,2 @@
+containsKey() then put(): 446 of 500 trials had MORE THAN ONE winner
+putIfAbsent():              0 of 500 trials had more than one winner

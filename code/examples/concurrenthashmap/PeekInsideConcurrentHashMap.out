@@ -1,0 +1,7 @@
+new ConcurrentHashMap<>() -> table is null, sizeCtl 0
+after  1 puts -> capacity 16, sizeCtl (next resize at) 12
+after 12 puts -> capacity 32, sizeCtl (next resize at) 24
+after 13 puts -> capacity 32, sizeCtl (next resize at) 24
+
+Same shape as HashMap — an array of bins — but each bin is locked separately,
+empty bins are filled with a CAS (no lock), and resizing is shared between threads.

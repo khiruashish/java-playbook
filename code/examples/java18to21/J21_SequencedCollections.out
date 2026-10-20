@@ -1,0 +1,6 @@
+first O1, last O3   (was get(0) and get(size() - 1))
+LinkedHashSet last: TEA   (used to need a full loop)
+reversed view sees the new order: [O4, O3, O2, O1]
+putFirst moves an existing key: {RICE=2, MILK=1, TEA=1}
+pollLastEntry: TEA=1, remaining {RICE=2, MILK=1}
+HashMap is a SequencedMap? false  (no defined order, so no first or last)

@@ -1,0 +1,19 @@
+:root {
+  --md-code-font: "JetBrains Mono", monospace;
+}
+
+/* Band badges: use with {.band-l1} etc. */
+.band-l1, .band-l2, .band-l3, .band-l4 {
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+.band-l1 { background: #2e7d32; }
+.band-l2 { background: #1565c0; }
+.band-l3 { background: #6a1b9a; }
+.band-l4 { background: #c62828; }
+
+/* Wider content column for API tables */
+.md-grid { max-width: 68rem; }

@@ -1,0 +1,3 @@
+snapshot (copyOf):        [MILK, RICE]  <- unaffected
+view (unmodifiableList):  [MILK, RICE, TEA]  <- sees the change
+toUnmodifiableList() result is immutable

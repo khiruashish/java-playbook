@@ -1,0 +1,3 @@
+algorithm: L64X128MixRandom
+bounded ints (1-6): true
+default generator: L32X64MixRandom

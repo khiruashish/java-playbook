@@ -1,0 +1,3 @@
+worker saw running=false and stopped
+worker alive? false
+Note: volatile gives visibility, NOT atomicity — count++ on a volatile still loses updates.

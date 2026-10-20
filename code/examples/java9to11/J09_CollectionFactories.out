@@ -1,0 +1,5 @@
+[MILK, RICE, TEA]  {MILK=60, RICE=450}  {DAL=140, TEA=120}
+add()  -> UnsupportedOperationException (immutable)
+null   -> NullPointerException
+dup    -> IllegalArgumentException: duplicate element: MILK
+contains(null) -> NullPointerException, not false

@@ -1,0 +1,7 @@
+sorted by length: [TEA, MILK-1L, RICE-5KG]
+inStock.test(0)   = false
+gst.apply(100)    = 105
+notify: order placed
+newOrderId.get()  = ORD-1001
+long AND rice: true, NOT long: true
+discount then gst: 105

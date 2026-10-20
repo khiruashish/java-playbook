@@ -1,0 +1,7 @@
+groupingBy:     {beverages=[Tea], dairy=[Milk, Paneer], grains=[Rice, Atta]}
+counting:       {beverages=1, dairy=2, grains=2}
+summingInt:     {beverages=120, dairy=150, grains=830}
+partitioningBy: {false=[Milk, Paneer, Tea], true=[Rice, Atta]}
+joining:        [Milk, Paneer, Rice, Atta, Tea]
+toMap:          {Atta=380, Milk=60, Paneer=90, Rice=450, Tea=120}
+statistics:     min=60 max=450 avg=220.0

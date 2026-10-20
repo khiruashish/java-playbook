@@ -1,0 +1,3 @@
+orTimeout:         TimeoutException
+completeOnTimeout: ₹60 standard rate
+(in both cases the slow task itself keeps running — the future completes, the work is not stopped)

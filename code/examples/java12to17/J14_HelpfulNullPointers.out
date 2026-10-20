@@ -1,0 +1,3 @@
+Cannot invoke "J14_HelpfulNullPointers$Address.city()" because the return value of "J14_HelpfulNullPointers$Customer.address()" is null
+
+Before Java 14 the message was just null — you had to guess which call in the chain failed.

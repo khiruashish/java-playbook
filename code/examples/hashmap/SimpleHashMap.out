@@ -1,0 +1,12 @@
+put MILK  -> bucket 3
+put RICE  -> bucket 3  (collision)
+put ATTA  -> bucket 2
+put DAL   -> bucket 2  (collision)
+      resize: 4 -> 8 buckets, every entry re-indexed
+put SALT  -> bucket 0
+put TEA   -> bucket 1
+put OIL   -> bucket 3
+      resize: 8 -> 16 buckets, every entry re-indexed
+put MILK  -> bucket 15  (replaced 4)
+
+get(MILK) = 99, get(DAL) = 3, get(JAM) = null

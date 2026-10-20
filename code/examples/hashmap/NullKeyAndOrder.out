@@ -1,0 +1,6 @@
+null key -> 1, size 1
+
+inserted:      [TEA, OIL, SALT, RICE, MILK, ATTA, DAL]
+HashMap:       [SALT, TEA, OIL, ATTA, DAL, RICE, MILK]   <- bucket order, not insertion order
+LinkedHashMap: [TEA, OIL, SALT, RICE, MILK, ATTA, DAL]   <- insertion order
+TreeMap:       [ATTA, DAL, MILK, OIL, RICE, SALT, TEA]   <- sorted

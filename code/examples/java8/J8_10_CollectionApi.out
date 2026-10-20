@@ -1,0 +1,6 @@
+removeIf zero:   [3, 5, 2]
+replaceAll x10:  [30, 50, 20]
+  dairy  Paneer  ₹90
+  dairy  Milk  ₹60
+  grains  Rice  ₹450
+  grains  Atta  ₹380

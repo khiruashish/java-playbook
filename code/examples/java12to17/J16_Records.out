@@ -1,0 +1,6 @@
+OrderLine[sku=MILK, quantity=2, unitPrice=₹60.00, tags=[dairy]]
+accessor: MILK, total: ₹120.00
+equals by value: true, same hashCode: true
+set size: 1
+validation: negative amount
+Pair[sku=RICE, qty=1]

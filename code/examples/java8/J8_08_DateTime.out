@@ -1,0 +1,10 @@
+order 2026-03-28, delivery 2026-03-31 (TUESDAY)
+days between: 3
+period to year end: P9M3D
+slot 18:00 - 19:30 (PT1H30M)
+same instant in London: 12:30
+as an Instant (UTC):    2026-03-28T12:30:00Z
+formatted: 28 Mar 2026, 06:00 PM
+parsed:    2026-05-01
+d after d.plusDays(1) without assigning: 2026-01-31   <- unchanged
+Jan 31 + 1 month = 2026-02-28   <- clamps to end of February

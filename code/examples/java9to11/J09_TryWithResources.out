@@ -1,0 +1,5 @@
+open  orders-db
+open  orders-replica
+querying orders-db and orders-replica
+close orders-replica
+close orders-db

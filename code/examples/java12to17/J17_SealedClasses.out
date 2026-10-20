@@ -1,0 +1,4 @@
+Card[last4=4417] -> fee 200 paise
+Upi[handle=asha@okbank] -> fee 0 paise
+Wallet[provider=PayQuick, balancePaise=50000] -> fee 100 paise
+permitted subclasses: [Card, Upi, Wallet]

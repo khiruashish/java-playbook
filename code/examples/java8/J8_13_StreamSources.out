@@ -1,0 +1,7 @@
+[MILK, RICE]
+[1, 2, 3]
+[0, 1, 2, 3, 4]  range excludes the end
+[1, 2, 3, 4, 5]  rangeClosed includes it
+[1, 2, 4, 8, 16, 32, 64, 128]  iterate (infinite, so limit)
+ORD-ORD-ORD
+chars: [M, I, L, K]

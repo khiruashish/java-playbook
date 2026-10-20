@@ -1,0 +1,12 @@
+cheap dairy: [Milk, Paneer]
+count > ₹100:   3
+any over ₹400:  true
+most expensive: Rice
+first 2 names:  [Milk, Paneer]
+
+Laziness — watch the order of the prints:
+  filter Milk
+  filter Paneer
+  filter Rice
+  map    Rice
+  found  Rice

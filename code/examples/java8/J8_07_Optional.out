@@ -1,0 +1,9 @@
+MILK present? true
+JAM  with orElse:    0
+MILK mapped:         ₹60
+RICE filtered > 100: true
+ifPresent ran with 60
+   (expensiveDefault() was called)
+orElse:    60
+orElseGet: 60
+orElseThrow: no price for JAM

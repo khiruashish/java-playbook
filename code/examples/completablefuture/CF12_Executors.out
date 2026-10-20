@@ -1,0 +1,3 @@
+default executor:  Thread-N
+own fixed pool:    io-1
+virtual threads:   isVirtual = true  <- best choice for blocking I/O on Java 21+

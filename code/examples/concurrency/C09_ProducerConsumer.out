@@ -1,0 +1,11 @@
+placed    ORD-1
+placed    ORD-2
+placed    ORD-3
+dispatched ORD-1
+placed    ORD-4
+dispatched ORD-2
+placed    ORD-5
+dispatched ORD-3
+dispatched ORD-4
+dispatched ORD-5
+all orders dispatched, in order

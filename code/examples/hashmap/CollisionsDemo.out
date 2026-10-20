@@ -1,0 +1,7 @@
+size = 6 — all six keys share bucket 10
+get(TEA)  = 3   equals() calls: 6
+get(MILK) = 4   equals() calls: 1
+get(OIL)  = null  equals() calls: 6
+
+With a good hashCode each lookup needs about one equals() call.
+With a constant hashCode it is a linear search — O(n) — until the bucket becomes a tree.

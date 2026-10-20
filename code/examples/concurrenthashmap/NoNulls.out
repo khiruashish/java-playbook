@@ -1,0 +1,7 @@
+HashMap.get(MILK) = null, containsKey = true   <- null is ambiguous
+ConcurrentHashMap.put(MILK, null) -> NullPointerException
+ConcurrentHashMap.put(null, 1)    -> NullPointerException
+
+Why: between get() == null and containsKey(), another thread may change the map,
+so a concurrent map cannot let null mean two things. Swapping HashMap for
+ConcurrentHashMap breaks code that stored null values.

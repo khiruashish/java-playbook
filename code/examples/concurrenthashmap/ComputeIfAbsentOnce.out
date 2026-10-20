@@ -1,0 +1,4 @@
+get-then-put:     loader called 16 times
+computeIfAbsent:  loader called 1 time
+
+Rule: the loader runs while the bin is locked — keep it fast, no I/O, and never touch the same map inside it.

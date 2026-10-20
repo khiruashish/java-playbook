@@ -1,0 +1,5 @@
+Math.clamp(150, 1, 100) = 100   (cap a requested quantity)
+StringBuilder.repeat:    |----------|
+indexOf('-', 5, 12):     8
+splitWithDelimiters:     10 + 5 - 3
+Character.isEmoji('🛒'): true

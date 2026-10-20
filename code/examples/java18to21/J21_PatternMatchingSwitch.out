@@ -1,0 +1,5 @@
+350 paise  <- Card[last4=4417, international=true]
+200 paise  <- Card[last4=1234, international=false]
+0 paise  <- Upi[handle=asha@okbank]
+100 paise  <- Wallet[provider=PayQuick, balancePaise=50000]
+large quantity 250 | quantity 3 | SKU MILK-1L | unknown 4.5

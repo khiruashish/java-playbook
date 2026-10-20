@@ -1,0 +1,7 @@
+putIfAbsent(MILK, 40) -> null   (was absent)
+putIfAbsent(MILK, 99) -> 40     (kept 40)
+after merges          -> {DAL=1, MILK=41, RICE=3}
+compute(DAL, +10)     -> DAL=11
+computeIfPresent->null-> DAL present? false
+replace(RICE, 3, 2)   -> true  RICE=2
+replace(RICE, 3, 1)   -> false (RICE is 2, not 3)

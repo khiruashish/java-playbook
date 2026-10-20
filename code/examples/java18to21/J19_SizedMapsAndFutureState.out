@@ -1,0 +1,3 @@
+newHashMap(100) holds 100 entries without resizing
+ok.state()  = SUCCESS, resultNow()    = RECEIPT-1
+bad.state() = FAILED, exceptionNow() = vendor down

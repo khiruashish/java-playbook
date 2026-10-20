@@ -1,0 +1,5 @@
+before: get = 40, size = 1
+after:  get = null, containsKey = false, size = 1
+remove(key) returned null — the entry can no longer be reached.
+
+Fix: use an immutable key, e.g.  record Sku(String code) { }

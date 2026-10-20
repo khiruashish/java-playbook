@@ -1,0 +1,218 @@
+site_name: Modern Java Enterprise Handbook
+site_description: A complete reference to the Java language and platform, from Java 8 to Java 26
+site_author: Ashish
+copyright: Personal technical knowledge base
+
+# ---------------------------------------------------------------------------
+# Theme
+# ---------------------------------------------------------------------------
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.path
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep orange
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to system preference
+  icon:
+    logo: material/language-java
+    repo: fontawesome/brands/git-alt
+  font:
+    text: Roboto
+    code: JetBrains Mono
+
+# ---------------------------------------------------------------------------
+# Markdown extensions
+# ---------------------------------------------------------------------------
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# ---------------------------------------------------------------------------
+# Plugins
+# ---------------------------------------------------------------------------
+plugins:
+  - search:
+      lang: en
+  - tags
+  # Uncomment once you want a single-file PDF export of the whole handbook.
+  # - print-site:
+  #     add_to_navigation: false
+  #     print_page_title: "Modern Java Enterprise Handbook"
+  #     add_print_site_banner: false
+  #     enumerate_headings: true
+  #     add_table_of_contents: true
+
+extra:
+  generator: false
+  status:
+    new: Recently added
+    draft: Draft — not yet reviewed
+  social:
+    - icon: fontawesome/brands/java
+      link: https://openjdk.org/
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+# ---------------------------------------------------------------------------
+# Navigation
+# ---------------------------------------------------------------------------
+nav:
+  - Home: index.md
+
+  - Platform:
+      - 01-platform/index.md
+      - "01 · The JDK Landscape (8 → 26)": 01-platform/01-jdk-landscape.md
+      - "02 · JVM Runtime Model": 01-platform/02-jvm-runtime-model.md
+      - "03 · The Toolchain": 01-platform/03-toolchain.md
+      - "04 · Builds, Release Flags & Preview Features": 01-platform/04-builds-and-preview-features.md
+      - "05 · Migration Strategy 8 → 25": 01-platform/05-migration-strategy.md
+
+  - Java 8:
+      - java8/index.md
+      - "06 · Lambdas & Functional Interfaces": 02-language/06-lambdas-functional-interfaces.md
+      - "07 · The Stream API": 02-language/07-stream-api.md
+      - "08 · Collectors & Stream Composition": 02-language/08-collectors.md
+      - "09 · Optional & Null Strategy": 02-language/09-optional.md
+      - "10 · java.time": 02-language/10-java-time.md
+      - "Java 8 by example": 07-examples/java-8.md
+      - "B · Java 8 Interview Workbook": appendix/b-java8-interview-workbook.md
+
+  - Language:
+      - 02-language/index.md
+      - "11 · Java 9–11: Modules, var, HttpClient": 02-language/11-java-9-to-11.md
+      - "12 · Java 14–17: Records, Sealed Types, Text Blocks": 02-language/12-java-14-to-17.md
+      - "13 · Pattern Matching": 02-language/13-pattern-matching.md
+      - "14 · Java 21–26 Language Features": 02-language/14-java-21-to-26.md
+      - "15 · String Templates: A Post-Mortem": 02-language/15-string-templates-postmortem.md
+      - "16 · Generics in Depth": 02-language/16-generics.md
+
+  - Collections:
+      - 03-collections/index.md
+      - "17 · Choosing the Right Collection": 03-collections/17-choosing-a-collection.md
+      - "18 · List Internals & CustomArrayList": 03-collections/18-list-internals.md
+      - "19 · HashMap Internals": 03-collections/19-hashmap-internals.md
+      - "20 · Set, Queue & Deque": 03-collections/20-set-queue-deque.md
+      - "21 · Sequenced Collections": 03-collections/21-sequenced-collections.md
+      - "22 · Immutability & Defensive Copying": 03-collections/22-immutability.md
+      - "23 · equals, hashCode & Comparators": 03-collections/23-equality-and-ordering.md
+
+  - Concurrency:
+      - 04-concurrency/index.md
+      - "24 · Threading Fundamentals": 04-concurrency/24-threading-fundamentals.md
+      - "25 · Shared State & Synchronization": 04-concurrency/25-shared-state.md
+      - "26 · The Java Memory Model": 04-concurrency/26-java-memory-model.md
+      - "27 · Locks, Atomics & java.util.concurrent": 04-concurrency/27-locks-and-atomics.md
+      - "28 · Executors & Thread Pool Design": 04-concurrency/28-executors.md
+      - "29 · CompletableFuture": 04-concurrency/29-completable-future.md
+      - "30 · ConcurrentHashMap & Concurrent Collections": 04-concurrency/30-concurrent-collections.md
+      - "31 · Virtual Threads": 04-concurrency/31-virtual-threads.md
+      - "32 · Structured Concurrency": 04-concurrency/32-structured-concurrency.md
+      - "33 · ThreadLocal → ScopedValue": 04-concurrency/33-scoped-values.md
+
+  - Runtime:
+      - 05-runtime/index.md
+      - "34 · Garbage Collection": 05-runtime/34-garbage-collection.md
+      - "35 · Memory Footprint & Object Layout": 05-runtime/35-memory-footprint.md
+      - "36 · Startup, Warmup & Project Leyden": 05-runtime/36-startup-and-leyden.md
+      - "37 · Profiling with JFR": 05-runtime/37-profiling-jfr.md
+      - "38 · Stream Gatherers": 05-runtime/38-stream-gatherers.md
+      - "39 · FFM API & Vector API": 05-runtime/39-ffm-and-vector-api.md
+      - "40 · The HTTP Client (HTTP/3)": 05-runtime/40-http-client.md
+
+  - Testing:
+      - 06-testing/index.md
+      - "41 · JUnit 5": 06-testing/41-junit5.md
+      - "42 · Mockito & Test Doubles": 06-testing/42-mockito.md
+      - "43 · Integration Testing & Testcontainers": 06-testing/43-integration-testing.md
+      - "44 · Testing Concurrent Code": 06-testing/44-testing-concurrency.md
+
+  - Examples:
+      - 07-examples/index.md
+      - "HashMap — how it works inside": 07-examples/hashmap-internals.md
+      - "ConcurrentHashMap — how it works inside": 07-examples/concurrenthashmap-internals.md
+      - "CompletableFuture by example": 07-examples/completablefuture.md
+      - "Concurrency toolkit by example": 07-examples/concurrency-toolkit.md
+      - "Java 9–11 by example": 07-examples/java-9-11.md
+      - "Java 12–17 by example": 07-examples/java-12-17.md
+      - "Java 18–21 by example": 07-examples/java-18-21.md
+
+  - Reference:
+      - appendix/index.md
+      - "A · JEP Matrix (Java 8 → 26)": appendix/a-jep-matrix.md
+      - "C · Concurrency Interview Bank": appendix/c-concurrency-interview-bank.md
+      - "D · Migration Checklists": appendix/d-migration-checklists.md
+      - "E · Cheat Sheet Index": appendix/e-cheat-sheets.md
+      - "F · Glossary & JEP Index": appendix/f-glossary.md
+      - "G · Source Guide Map": appendix/g-source-guides.md

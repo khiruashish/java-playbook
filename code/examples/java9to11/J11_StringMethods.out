@@ -1,0 +1,7 @@
+"   ".isBlank()   = true
+"   ".isEmpty()   = false
+strip():          [MILK]   (Unicode-aware)
+trim():           [  MILK  ]   (only ASCII spaces)
+stripLeading():   [MILK  ]
+repeat(3):        -=-=-=
+lines(), skipping blanks: [MILK,60, RICE,450, TEA,120]

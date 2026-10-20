@@ -1,0 +1,18 @@
+Default map (capacity 16):
+   1 keys in one bucket -> capacity 16, bucket type Node
+   2 keys in one bucket -> capacity 16, bucket type Node
+   3 keys in one bucket -> capacity 16, bucket type Node
+   4 keys in one bucket -> capacity 16, bucket type Node
+   5 keys in one bucket -> capacity 16, bucket type Node
+   6 keys in one bucket -> capacity 16, bucket type Node
+   7 keys in one bucket -> capacity 16, bucket type Node
+   8 keys in one bucket -> capacity 16, bucket type Node
+   9 keys in one bucket -> capacity 32, bucket type Node
+  10 keys in one bucket -> capacity 64, bucket type Node
+  11 keys in one bucket -> capacity 64, bucket type TreeNode
+  Below 64 buckets HashMap RESIZES instead of treeifying — a long chain in a small
+  table usually means the table is too small, not that the hash is bad.
+
+Pre-sized map (capacity 64):
+   8 keys in one bucket -> capacity 64, bucket type Node
+   9 keys in one bucket -> capacity 64, bucket type TreeNode

@@ -1,0 +1,3 @@
+thenApply on an already-completed future   runs on: main
+thenApply on a pending future              runs on: Thread-N
+thenApplyAsync                             runs on: Thread-N

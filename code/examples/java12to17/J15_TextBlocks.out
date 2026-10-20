@@ -1,0 +1,9 @@
+{
+  "orderId": "O1",
+  "items": ["MILK", "RICE"],
+  "note": "leave at "the gate""
+}
+SELECT id, total
+FROM orders
+WHERE customer_id = ? AND placed_at >= ?
+Hello Asha, your order O1 is on its way.

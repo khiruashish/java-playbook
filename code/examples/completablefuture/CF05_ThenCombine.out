@@ -1,0 +1,2 @@
+final price: ₹50
+took about 400 ms — two 400 ms calls ran at the same time, not one after another

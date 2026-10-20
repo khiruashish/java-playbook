@@ -1,0 +1,5 @@
+ok     MILK: 40 units
+ok     RICE: 12 units
+failed TEA: warehouse offline
+invokeAny -> fast vendor
+Warning: submit() hides exceptions inside the Future — always call get() or they vanish.

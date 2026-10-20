@@ -1,0 +1,3 @@
+join(): CompletionException -> cause: vendor unavailable
+get():  ExecutionException -> cause: vendor unavailable
+unwrap before matching on the type -> fallback vendor

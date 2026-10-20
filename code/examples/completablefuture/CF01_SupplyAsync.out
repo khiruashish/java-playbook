@@ -1,0 +1,4 @@
+1. request sent — main thread is free
+2. done yet? false
+3. MILK-1L costs ₹60
+4. done yet? true

@@ -1,0 +1,107 @@
+{
+ "0c68d553dcd0": {
+  "file": "docs/05-runtime/38-stream-gatherers.md",
+  "line": 58,
+  "reason": "`lines` is a List<OrderLine> in this example"
+ },
+ "1b8997f4782d": {
+  "file": "docs/02-language/13-pattern-matching.md",
+  "line": 173,
+  "reason": "Record types declared in an earlier block, or an equals() fragment that belongs inside Sku"
+ },
+ "2a7939f23bae": {
+  "file": "docs/02-language/09-optional.md",
+  "line": 37,
+  "reason": "Deliberate 'before' version: pre-Optional find() returning a nullable InventoryItem"
+ },
+ "2bf18a90ba0f": {
+  "file": "docs/02-language/14-java-21-to-26.md",
+  "line": 30,
+  "reason": "Record types (DispatchFailed) declared in an earlier block"
+ },
+ "3c19b9112acf": {
+  "file": "docs/05-runtime/40-http-client.md",
+  "line": 274,
+  "reason": "`dispatch(order)` is defined in the preceding block"
+ },
+ "3c6831cbd2dd": {
+  "file": "docs/02-language/16-generics.md",
+  "line": 28,
+  "reason": "Elided arguments or member-wrapped caller; types from the surrounding chapter"
+ },
+ "4ecb8cfc4f22": {
+  "file": "docs/02-language/08-collectors.md",
+  "line": 194,
+  "reason": "`lines` is a List<OrderLine> in this chapter, or a deliberately elided misuse example"
+ },
+ "5f0560842dd5": {
+  "file": "docs/02-language/16-generics.md",
+  "line": 289,
+  "reason": "Elided arguments or member-wrapped caller; types from the surrounding chapter"
+ },
+ "675d596d3919": {
+  "file": "docs/02-language/07-stream-api.md",
+  "line": 352,
+  "reason": "Arguments elided with (...)"
+ },
+ "6763a1509813": {
+  "file": "docs/02-language/08-collectors.md",
+  "line": 282,
+  "reason": "`lines` is a List<OrderLine> in this chapter, or a deliberately elided misuse example"
+ },
+ "6c1de3b7651d": {
+  "file": "docs/02-language/08-collectors.md",
+  "line": 272,
+  "reason": "`lines` is a List<OrderLine> in this chapter, or a deliberately elided misuse example"
+ },
+ "8aca3c0f198a": {
+  "file": "docs/02-language/15-string-templates-postmortem.md",
+  "line": 137,
+  "reason": "`sku` is a String code in this example; the shared context types it as Sku"
+ },
+ "97c7bcd65a25": {
+  "file": "docs/02-language/08-collectors.md",
+  "line": 42,
+  "reason": "`lines` is a List<OrderLine> in this chapter, or a deliberately elided misuse example"
+ },
+ "a29a26498772": {
+  "file": "docs/03-collections/22-immutability.md",
+  "line": 50,
+  "reason": "Uses the LeakyOrder class declared in the preceding block"
+ },
+ "b4274b25821f": {
+  "file": "docs/04-concurrency/30-concurrent-collections.md",
+  "line": 252,
+  "reason": "`inventory` is a ConcurrentMap in this example; the shared context types it as InventoryClient"
+ },
+ "c4256d6b6e73": {
+  "file": "docs/06-testing/43-integration-testing.md",
+  "line": 287,
+  "reason": "`repository` is the test class's OrderJdbcRepository field from the preceding test block; the shared context types it as the domain OrderRepository"
+ },
+ "c5ea54c2a27a": {
+  "file": "docs/02-language/13-pattern-matching.md",
+  "line": 262,
+  "reason": "Record types declared in an earlier block, or an equals() fragment that belongs inside Sku"
+ },
+ "e09822653207": {
+  "file": "docs/02-language/08-collectors.md",
+  "line": 182,
+  "reason": "`lines` is a List<OrderLine> in this chapter, or a deliberately elided misuse example"
+ },
+ "ee234cae4639": {
+  "file": "docs/03-collections/20-set-queue-deque.md",
+  "line": 239,
+  "reason": "`incoming` is a List<Order> here; the shared context types it as List<Sku>"
+ },
+ "f78358931aee": {
+  "file": "docs/04-concurrency/33-scoped-values.md",
+  "line": 30,
+  "reason": "Deliberate 'before' signature showing context threaded through every method"
+ },
+ "faf6c9e243a8": {
+  "file": "docs/02-language/12-java-14-to-17.md",
+  "line": 218,
+  "reason": "`id` is a CartId in the chapter; the shared context types it as OrderId"
+ }
+}

@@ -1,0 +1,20 @@
+new HashMap<>()  -> table is null  (allocated lazily on the first put)
+after  1 puts    -> capacity 16, threshold 12
+after 12 puts    -> capacity 16, threshold 12
+after 13 puts    -> capacity 32, threshold 24
+
+The 13th put crossed the threshold (16 x 0.75 = 12), so the table doubled to 32.
+
+bucket  5: SKU-10
+bucket 16: SKU-4
+bucket 17: SKU-5
+bucket 18: SKU-6
+bucket 19: SKU-7
+bucket 21: SKU-1
+bucket 22: SKU-2
+bucket 23: SKU-3
+bucket 24: SKU-13
+bucket 26: SKU-11
+bucket 27: SKU-12
+bucket 28: SKU-8
+bucket 29: SKU-9

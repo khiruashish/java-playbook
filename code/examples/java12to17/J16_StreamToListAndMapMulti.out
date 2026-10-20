@@ -1,0 +1,3 @@
+toList() is unmodifiable
+collect(toList()) is mutable: [milk, tea]
+mapMulti: [O1:MILK, O1:RICE, O2:TEA]
