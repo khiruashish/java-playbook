@@ -1,0 +1,7 @@
+top 2      = {ENG=[Chen, Asha], OPS=[Eva, Dev], SALES=[Femi]}
+average    = {ENG=210.0, OPS=135.0, SALES=90.0}
+highest ENG = Chen
+highest OPS = Eva
+highest SALES = Femi
+above 150  = {false=3, true=3}
+PASS

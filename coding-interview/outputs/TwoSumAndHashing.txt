@@ -1,0 +1,10 @@
+twoSum([2,7,11,15], 9) = [0, 1]
+twoSum([3,3], 6)       = [0, 1]
+twoSum([1,2], 7)       = none
+firstDuplicate([4,1,3,1,4]) = 1
+longestUnique("abcabcbb") = 3
+longestUnique("bbbbb"   ) = 1
+longestUnique("pwwkew"  ) = 3
+longestUnique("abba"    ) = 2
+longestUnique(""        ) = 0
+PASS

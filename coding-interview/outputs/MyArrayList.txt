@@ -1,0 +1,5 @@
+size=10 capacity=11
+for-each + list.remove -> ConcurrentModificationException (fail-fast)
+after iterator.remove of evens: 3 5 7 9
+get(4) -> IndexOutOfBoundsException
+PASS

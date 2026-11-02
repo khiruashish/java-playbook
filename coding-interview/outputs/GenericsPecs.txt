@@ -1,0 +1,5 @@
+max(apples) = Apple(180)
+copy into List<Fruit>  = [Apple(120), Apple(180), Apple(150)]
+copy into List<Object> = [Apple(120), Apple(180), Apple(150)]
+filter(heavy)          = [Apple(180), Apple(150)]
+PASS

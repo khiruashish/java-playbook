@@ -1,0 +1,8 @@
+original           : 1 -> 2 -> 3 -> 4 -> 5
+reverse iterative  : 5 -> 4 -> 3 -> 2 -> 1
+reverse recursive  : 5 -> 4 -> 3 -> 2 -> 1
+middle of 1..5     : 3
+middle of 1..6     : 4 (second middle)
+hasCycle(1..4)     : false
+hasCycle(4 -> 2)   : true
+PASS

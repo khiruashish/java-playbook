@@ -1,0 +1,3 @@
+size=1000 capacity=2048
+50 keys with identical hashCode -> all found: true
+PASS

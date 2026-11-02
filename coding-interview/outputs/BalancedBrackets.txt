@@ -1,0 +1,11 @@
+<empty>        balanced=true
+()             balanced=true
+([]{})         balanced=true
+a(b[c]{d}e)f   balanced=true
+{[()()]}       balanced=true
+(              balanced=false
+)              balanced=false
+(]             balanced=false
+([)]           balanced=false
+((())          balanced=false
+PASS
