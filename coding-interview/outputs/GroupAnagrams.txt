@@ -1,0 +1,3 @@
+sorted-key groups: [[eat, tea, ate], [tan, nat], [bat]]
+count-key groups : [[eat, tea, ate], [tan, nat], [bat]]
+PASS

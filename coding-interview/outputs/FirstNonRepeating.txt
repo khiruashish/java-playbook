@@ -1,0 +1,6 @@
+"swiss"      -> w
+"aabbcc"     -> none
+"programming" -> p
+"x"          -> x
+""           -> none
+PASS

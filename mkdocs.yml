@@ -209,6 +209,22 @@ nav:
       - "Java 12–17 by example": 07-examples/java-12-17.md
       - "Java 18–21 by example": 07-examples/java-18-21.md
 
+  - Coding Interview:
+      - coding-interview/index.md
+      - "1. First Non-Repeating Character": coding-interview/01-first-non-repeating.md
+      - "2. Group Anagrams": coding-interview/02-group-anagrams.md
+      - "3. Balanced Brackets": coding-interview/03-balanced-brackets.md
+      - "4. Implement a HashMap": coding-interview/04-implement-hashmap.md
+      - "5. LRU Cache": coding-interview/05-lru-cache.md
+      - "6. Immutable Class & the equals/hashCode Contract": coding-interview/06-immutable-class.md
+      - "7. Streams: Top Earners per Department": coding-interview/07-streams-grouping.md
+      - "8. ArrayList with a Fail-Fast Iterator": coding-interview/08-arraylist-fail-fast.md
+      - "9. Top-K Frequent Words": coding-interview/09-top-k-frequent.md
+      - "10. Linked List: Reverse, Middle, Cycle": coding-interview/10-linked-list.md
+      - "11. Generics: Bounded Types & PECS": coding-interview/11-generics-pecs.md
+      - "12. Two Sum & the HashMap Family": coding-interview/12-two-sum-hashing.md
+
+
   - Reference:
       - appendix/index.md
       - "A · JEP Matrix (Java 8 → 26)": appendix/a-jep-matrix.md

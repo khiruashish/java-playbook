@@ -1,0 +1,6 @@
+caller mutated its list; invoice still has [apples, pears]
+lines() is unmodifiable
+withTotal -> new object Invoice[INV-1, 900, [apples, pears]], original unchanged 500
+equals without hashCode: HashSet.contains(equal key) = false
+record: InvoiceRecord[number=INV-2, totalCents=100, lines=[apples, pears, injected later]]
+PASS
