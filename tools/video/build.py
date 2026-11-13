@@ -51,7 +51,7 @@ table.sm { font-size: 25px } table.sm td { padding: 11px 16px }
 .flow .fbox { flex: 1; font-size: 27px; line-height: 1.45; padding: 20px 22px; border-radius: 14px;
   background: rgba(99,102,241,.14); border: 1px solid rgba(129,140,248,.45) }
 .flow .arrow { font-size: 44px; color: #e879f9; display: flex; align-items: center }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: stretch }
+.grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 28px; align-items: stretch }
 .grid2.start { align-items: start }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px }
 .card { border-radius: 16px; padding: 26px 28px; background: rgba(255,255,255,.035); border: 1px solid #2a2f5a;
@@ -74,6 +74,7 @@ table { border-collapse: collapse; width: 100%; font-size: 29px; background: rgb
 th { text-align: left; color: #a5b4fc; font-weight: 700; padding: 14px 20px; background: rgba(99,102,241,.16) }
 td { padding: 13px 20px; border-top: 1px solid #2a2f5a; line-height: 1.3 }
 table.wide { font-size: 34px } table.wide td:first-child { width: 220px; color: #e879f9 }
+table.pairs { font-size: 30px } table.pairs td:first-child { width: 600px }
 .pipeline { display: flex; gap: 20px; align-items: center; font-size: 36px; color: #818cf8; font-weight: 700 }
 .pipeline span { color: #e6e8f5; background: rgba(99,102,241,.16); padding: 6px 22px; border-radius: 12px }
 .pipeline span.hl { background: linear-gradient(135deg,#6366f1,#d946ef) }
@@ -120,7 +121,11 @@ def main():
     # 1) HTML for every step, then screenshot them all in one Chromium session
     steps = []  # (png, text, is_last_step_of_slide)
     total = len(mod.SLIDES)
+    import re
     for i, s in enumerate(mod.SLIDES):
+        top = max(map(int, re.findall(r'data-step="(\d+)"', s["body"])), default=0)
+        if top >= len(s["narration"]):
+            sys.exit(f"slide {i + 1} '{s['title']}': reveals step {top} but has only {len(s['narration'])} narration parts")
         for k, text in enumerate(s["narration"]):
             h = work / f"s{i:02}_{k:02}.html"
             h.write_text(page(mod, i, total, s, k), encoding="utf-8")

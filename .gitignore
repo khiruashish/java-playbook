@@ -6,4 +6,5 @@ __pycache__/
 code/target/
 tools/video/models/
 tools/video/out/
-tools/video/node_modules/
+tools/video/node_modules
+tools/video/.venv
