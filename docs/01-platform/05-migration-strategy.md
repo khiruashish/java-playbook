@@ -7,6 +7,16 @@ tags: [platform, migration, upgrade, java8]
 
 # Migration Strategy 8 → 25
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch05.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch05.vtt">
+</video>
+<figcaption>Video walkthrough · 7:29 · subtitles via CC · <a href="../../videos/ch05.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L4 Architect · **Prerequisites:** [The JDK Landscape](01-jdk-landscape.md), [The Toolchain](03-toolchain.md), [Builds & Preview Features](04-builds-and-preview-features.md)

@@ -1,0 +1,371 @@
+1
+00:00:00,600 --> 00:00:04,358
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,358 --> 00:00:09,155
+This is chapter five: migration strategy, from Java 8 to 25.
+
+3
+00:00:09,605 --> 00:00:13,574
+Upgrading the JDK is rarely hard because of any one change.
+
+4
+00:00:13,574 --> 00:00:21,850
+It's hard because teams treat it as one change, when it's several different kinds of breakage stacked on top of each other.
+
+5
+00:00:22,750 --> 00:00:24,324
+Two failure patterns.
+
+6
+00:00:24,324 --> 00:00:27,921
+The stall: a team has been on Java 8 since 2016.
+
+7
+00:00:27,921 --> 00:00:35,565
+Every year someone proposes upgrading, the estimate is a quarter, maybe, and it loses to feature work.
+
+8
+00:00:35,565 --> 00:00:42,910
+Meanwhile libraries raise their baselines, nothing can be updated, and vulnerabilities accumulate.
+
+9
+00:00:43,360 --> 00:00:47,841
+And the big bang: a team goes from 8 to 21 in one branch.
+
+10
+00:00:47,841 --> 00:00:55,072
+Three weeks in, there are four hundred changed files and failing tests nobody can attribute.
+
+11
+00:00:55,072 --> 00:01:00,811
+Was it the JDK, a framework upgrade, a removed API, or a changed default?
+
+12
+00:01:01,261 --> 00:01:05,591
+Both come from the same mistake: treating the upgrade as one change.
+
+13
+00:01:06,491 --> 00:01:09,176
+There are three kinds of breakage.
+
+14
+00:01:09,176 --> 00:01:11,940
+Removed APIs, like JAXB in Java 11.
+
+15
+00:01:11,940 --> 00:01:16,283
+Those fail at compile time or startup, so they're loud.
+
+16
+00:01:16,733 --> 00:01:22,069
+Encapsulated internals, like reflection into Unsafe, blocked in 17.
+
+17
+00:01:22,069 --> 00:01:27,165
+Those fail at runtime, but only on the code path that uses them.
+
+18
+00:01:27,615 --> 00:01:32,303
+And changed defaults: locale data, the default garbage collector.
+
+19
+00:01:32,303 --> 00:01:33,529
+Those are silent.
+
+20
+00:01:33,529 --> 00:01:36,198
+You find out when a customer notices.
+
+21
+00:01:36,198 --> 00:01:40,309
+That's why a migration needs testing, not just compiling.
+
+22
+00:01:40,759 --> 00:01:44,771
+And most of the work is in dependencies, not your code.
+
+23
+00:01:44,771 --> 00:01:47,324
+Your code rarely touches internals.
+
+24
+00:01:47,324 --> 00:01:51,846
+Your old bytecode library, XML stack and mocking framework do.
+
+25
+00:01:51,846 --> 00:01:58,849
+So the estimate depends on how far behind your dependencies are, not on how big the codebase is.
+
+26
+00:01:59,749 --> 00:02:04,343
+Before estimating anything, spend a day on an assessment.
+
+27
+00:02:04,343 --> 00:02:09,258
+jdeps lists internal API use across the whole dependency set.
+
+28
+00:02:09,258 --> 00:02:12,079
+jdeprscan lists deprecated API use.
+
+29
+00:02:12,079 --> 00:02:16,914
+The versions plugin shows how far behind each dependency is.
+
+30
+00:02:16,914 --> 00:02:21,829
+And try starting the app on JDK 17 without changing anything.
+
+31
+00:02:22,279 --> 00:02:31,211
+The output splits cleanly into your code, usually a handful of places, and dependencies, usually most of it, fixed by upgrading.
+
+32
+00:02:31,211 --> 00:02:33,095
+That split is the estimate.
+
+33
+00:02:33,995 --> 00:02:38,650
+The first step, from 8 to 17, in order, each as its own PR.
+
+34
+00:02:38,650 --> 00:02:43,147
+First, upgrade dependencies while you're still on Java 8.
+
+35
+00:02:43,147 --> 00:02:51,510
+Most libraries that support 17 still support 8, so this removes most of the risk without touching the JDK.
+
+36
+00:02:51,960 --> 00:02:57,911
+Second, add the removed Java EE modules back as ordinary dependencies.
+
+37
+00:02:57,911 --> 00:03:03,523
+That's the fix for NoClassDefFoundError on javax dot xml dot bind.
+
+38
+00:03:03,973 --> 00:03:08,372
+Third, switch the build to release 17 and fix the compile errors.
+
+39
+00:03:08,372 --> 00:03:09,861
+There are usually few.
+
+40
+00:03:10,311 --> 00:03:14,267
+Fourth, start the application and collect the reflection failures.
+
+41
+00:03:14,267 --> 00:03:18,823
+For each one, find the library, and look for a version that doesn't need it.
+
+42
+00:03:19,273 --> 00:03:21,793
+Fifth, verify the behaviour changes.
+
+43
+00:03:21,793 --> 00:03:23,753
+This is the step teams skip.
+
+44
+00:03:24,203 --> 00:03:28,960
+And sixth, ship Java 17 to production before starting the next step.
+
+45
+00:03:29,860 --> 00:03:32,545
+Here's the typical reflection failure.
+
+46
+00:03:32,545 --> 00:03:40,036
+A library is reaching into a private field of ArrayList, and java dot base won't open java dot util to it.
+
+47
+00:03:40,486 --> 00:03:43,605
+When no fixed version exists yet, add the flag.
+
+48
+00:03:43,605 --> 00:03:50,107
+But put it in an argument file, with a comment naming the library and the version that removes it.
+
+49
+00:03:50,557 --> 00:03:57,915
+Add opens works per package, not per class, so it opens all of java dot util to all classpath code.
+
+50
+00:03:57,915 --> 00:04:04,232
+Treat each one as a ticket with an owner and an upgrade target, not as configuration.
+
+51
+00:04:05,132 --> 00:04:09,240
+Java 9 switched the default locale data to CLDR.
+
+52
+00:04:09,240 --> 00:04:16,941
+The same UK medium date that printed twenty dash Sep dash 2026 now prints twenty Sep 2026.
+
+53
+00:04:16,941 --> 00:04:18,139
+Nothing fails.
+
+54
+00:04:18,139 --> 00:04:21,477
+A downstream parser breaks weeks later.
+
+55
+00:04:21,477 --> 00:04:27,809
+If a JDK-formatted date crosses a system boundary, assert on it in a test.
+
+56
+00:04:28,259 --> 00:04:39,803
+Others: the default collector moved from Parallel to G1, which is better for latency but can cost a batch job throughput, without anyone changing a flag.
+
+57
+00:04:39,803 --> 00:04:43,047
+CMS was removed, so old flags stop startup.
+
+58
+00:04:43,047 --> 00:04:44,254
+Nashorn is gone.
+
+59
+00:04:44,254 --> 00:04:46,819
+And old TLS versions are disabled.
+
+60
+00:04:47,719 --> 00:04:50,057
+After 17, the steps are easy.
+
+61
+00:04:50,057 --> 00:04:59,730
+For 21: check deprecations, Thread dot stop now throws, and remember that synchronized still pins virtual threads on 21.
+
+62
+00:05:00,180 --> 00:05:06,369
+For 25: compact object headers make objects smaller, so re-baseline heap sizing.
+
+63
+00:05:06,369 --> 00:05:12,093
+Recheck your add-opens list, because many libraries no longer need theirs.
+
+64
+00:05:12,093 --> 00:05:16,735
+And remove any workarounds for pinning, which Java 24 fixed.
+
+65
+00:05:17,185 --> 00:05:21,073
+And resist adopting new features in the upgrade PR.
+
+66
+00:05:21,073 --> 00:05:29,003
+A JDK upgrade should change the JDK and nothing else, or you lose the ability to attribute a regression.
+
+67
+00:05:29,903 --> 00:05:40,421
+Roll out in stages: a CI matrix on both JDKs, staging, a canary for a few hours, a quarter of traffic for a day, then everything.
+
+68
+00:05:40,871 --> 00:05:43,630
+Here's the property that makes it safe.
+
+69
+00:05:43,630 --> 00:05:51,201
+Compiled with release 17, the same artifact runs on 17 and on 21, so rollback is just swapping the runtime.
+
+70
+00:05:51,201 --> 00:05:54,385
+Raising the release flag is the one-way door.
+
+71
+00:05:54,385 --> 00:06:00,470
+So move the runtime first, run it for a release cycle, and only then raise the target.
+
+72
+00:06:00,470 --> 00:06:06,343
+Teams that do both together lose their cheapest rollback exactly when they need it.
+
+73
+00:06:06,793 --> 00:06:18,611
+On the canary, watch GC pause distribution, memory outside the heap, p99 latency, and errors on anything that formats dates, numbers or currency.
+
+74
+00:06:19,511 --> 00:06:20,910
+Production rules.
+
+75
+00:06:20,910 --> 00:06:22,966
+Assess before estimating.
+
+76
+00:06:22,966 --> 00:06:26,421
+Upgrade dependencies on the old JDK first.
+
+77
+00:06:26,421 --> 00:06:30,451
+Step from 8 to 17 to 21 to 25, shipping each one.
+
+78
+00:06:30,451 --> 00:06:34,481
+Move the runtime before raising the release flag.
+
+79
+00:06:34,481 --> 00:06:37,607
+Comment every add-opens with an owner.
+
+80
+00:06:37,607 --> 00:06:42,295
+And test the silent changes: locale, GC, TLS and charset.
+
+81
+00:06:42,745 --> 00:06:45,516
+Never jump from 8 to 25 in one step.
+
+82
+00:06:45,516 --> 00:06:49,518
+Never adopt new language features in the upgrade PR.
+
+83
+00:06:49,518 --> 00:06:52,520
+Never treat add-opens as configuration.
+
+84
+00:06:52,520 --> 00:06:54,675
+Never trust a clean compile.
+
+85
+00:06:54,675 --> 00:06:58,447
+And never skip the canary because staging passed.
+
+86
+00:06:59,347 --> 00:07:00,028
+To recap.
+
+87
+00:07:00,028 --> 00:07:06,611
+Breakage comes in three kinds, and the silent behaviour changes are the dangerous ones.
+
+88
+00:07:06,611 --> 00:07:09,562
+The work is mostly dependency upgrades.
+
+89
+00:07:09,562 --> 00:07:14,330
+Java 17 is the landing point, and after it, 21 and 25 are easy.
+
+90
+00:07:14,330 --> 00:07:20,232
+And move the runtime before raising the release flag, so rollback stays cheap.
+
+91
+00:07:20,682 --> 00:07:23,187
+That completes the platform section.
+
+92
+00:07:23,187 --> 00:07:27,013
+Next is chapter six: lambdas and functional interfaces.
+
+93
+00:07:27,013 --> 00:07:28,405
+Thanks for watching.
