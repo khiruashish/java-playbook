@@ -7,6 +7,16 @@ tags: [language, java8, functional]
 
 # Lambdas & Functional Interfaces
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch06.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch06.vtt">
+</video>
+<figcaption>Video walkthrough · 10:02 · subtitles via CC · <a href="../../videos/ch06.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 !!! example "Try it first"
     **[Java 8 by example](../07-examples/java-8.md)** — 13 runnable programs covering every major Java 8 feature, each with its real output.
 

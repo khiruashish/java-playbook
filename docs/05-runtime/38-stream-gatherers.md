@@ -7,6 +7,16 @@ tags: [runtime, streams, gatherers, java24]
 
 # Stream Gatherers
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch38.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch38.vtt">
+</video>
+<figcaption>Video walkthrough · 5:07 · subtitles via CC · <a href="../../videos/ch38.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L3 Enterprise · **Prerequisites:** [The Stream API](../02-language/07-stream-api.md), [Collectors](../02-language/08-collectors.md)

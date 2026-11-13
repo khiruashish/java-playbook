@@ -649,3 +649,11 @@
 .pb-home-hero > .md-grid { padding: 1.4rem .8rem 0; }
 @media screen and (min-width: 76.25em) { .pb-home-hero > .md-grid { padding: 1.6rem 1.2rem 0; } }
 .pb-home-hero .pb-stats { margin-top: -1rem; }
+
+/* ---------- Chapter video walkthroughs ---------- */
+.md-typeset figure.pb-video { margin: 0 0 1.6em; max-width: 100%; }
+.md-typeset figure.pb-video video {
+  display: block; width: 100%; aspect-ratio: 16 / 9; background: #000;
+  border-radius: 10px; border: 1px solid var(--pb-border); box-shadow: var(--pb-shadow-1);
+}
+.md-typeset figure.pb-video figcaption { margin: .5em 0 0; max-width: none; font-size: .72rem; color: var(--md-default-fg-color--light); }

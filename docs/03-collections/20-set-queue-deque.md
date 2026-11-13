@@ -7,6 +7,16 @@ tags: [collections, set, queue, deque, priorityqueue]
 
 # Set, Queue & Deque
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch20.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch20.vtt">
+</video>
+<figcaption>Video walkthrough · 6:13 · subtitles via CC · <a href="../../videos/ch20.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [Choosing the Right Collection](17-choosing-a-collection.md), [HashMap Internals](19-hashmap-internals.md)

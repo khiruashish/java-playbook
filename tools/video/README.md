@@ -48,3 +48,10 @@ in `docs/`. Guidelines from the pilot:
 - Write narration for the ear: spell out symbols (`::` → "colon colon", `@FunctionalInterface` → "at FunctionalInterface").
 - Keep code to ≤ 10 lines per block; use `size=` on `code()` to shrink dense blocks.
 - Run with `--frames-only` first and fix any overflow before building audio.
+
+## Publishing to the site
+
+Copy the finished `out/chNN.mp4` and `.srt` files into the repo-root `videos/` folder, then run
+`python3 tools/video/link_videos.py` from the repo root. It embeds a player at the top of each chapter page
+and rewrites `docs/watch.md` (the **Videos** tab). The deploy workflow copies `videos/` into the built site
+and converts the subtitles to WebVTT.

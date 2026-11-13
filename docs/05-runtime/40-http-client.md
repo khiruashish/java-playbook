@@ -7,6 +7,16 @@ tags: [runtime, http, networking, java11]
 
 # The HTTP Client (HTTP/3)
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch40.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch40.vtt">
+</video>
+<figcaption>Video walkthrough · 5:26 · subtitles via CC · <a href="../../videos/ch40.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L3 Enterprise · **Prerequisites:** [Java 9–11](../02-language/11-java-9-to-11.md), [Virtual Threads](../04-concurrency/31-virtual-threads.md)

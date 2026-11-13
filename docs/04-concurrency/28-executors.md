@@ -7,6 +7,16 @@ tags: [concurrency, executors, thread-pools]
 
 # Executors & Thread Pool Design
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch28.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch28.vtt">
+</video>
+<figcaption>Video walkthrough · 6:09 · subtitles via CC · <a href="../../videos/ch28.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L3 Enterprise · **Prerequisites:** [Threading Fundamentals](24-threading-fundamentals.md), [Locks, Atomics & java.util.concurrent](27-locks-and-atomics.md)

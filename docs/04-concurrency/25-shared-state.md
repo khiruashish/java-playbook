@@ -7,6 +7,16 @@ tags: [concurrency, synchronization, volatile, deadlock]
 
 # Shared State & Synchronization
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch25.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch25.vtt">
+</video>
+<figcaption>Video walkthrough · 6:49 · subtitles via CC · <a href="../../videos/ch25.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [Threading Fundamentals](24-threading-fundamentals.md)

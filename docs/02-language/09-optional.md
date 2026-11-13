@@ -7,6 +7,16 @@ tags: [language, java8, null-safety]
 
 # Optional & Null Strategy
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch09.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch09.vtt">
+</video>
+<figcaption>Video walkthrough · 8:27 · subtitles via CC · <a href="../../videos/ch09.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [Lambdas & Functional Interfaces](06-lambdas-functional-interfaces.md)

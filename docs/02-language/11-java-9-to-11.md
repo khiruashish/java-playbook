@@ -7,6 +7,16 @@ tags: [language, modules, jpms, java11]
 
 # Java 9–11: Modules, var, HttpClient
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch11.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch11.vtt">
+</video>
+<figcaption>Video walkthrough · 7:54 · subtitles via CC · <a href="../../videos/ch11.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 !!! example "Try it first"
     **[Java 9–11 by example](../07-examples/java-9-11.md)** — 11 runnable programs, each with its real output.
 

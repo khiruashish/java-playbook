@@ -7,6 +7,16 @@ tags: [language, preview, jep-process]
 
 # String Templates: A Post-Mortem
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch15.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch15.vtt">
+</video>
+<figcaption>Video walkthrough · 7:02 · subtitles via CC · <a href="../../videos/ch15.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L4 Architect · **Prerequisites:** [Java 14–17](12-java-14-to-17.md), [Java 21–26](14-java-21-to-26.md)

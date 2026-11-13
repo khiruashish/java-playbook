@@ -7,6 +7,16 @@ tags: [language, java8, date-time]
 
 # java.time
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch10.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch10.vtt">
+</video>
+<figcaption>Video walkthrough · 8:04 · subtitles via CC · <a href="../../videos/ch10.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L1 Foundations · **Prerequisites:** core Java syntax

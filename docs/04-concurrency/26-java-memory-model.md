@@ -7,6 +7,16 @@ tags: [concurrency, jmm, happens-before, visibility]
 
 # The Java Memory Model
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch26.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch26.vtt">
+</video>
+<figcaption>Video walkthrough · 6:55 · subtitles via CC · <a href="../../videos/ch26.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L4 Architect · **Prerequisites:** [Shared State & Synchronization](25-shared-state.md)
