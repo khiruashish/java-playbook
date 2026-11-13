@@ -1,0 +1,303 @@
+1
+00:00:00,600 --> 00:00:04,161
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,161 --> 00:00:09,389
+This is chapter forty-one, the first of the testing section: JUnit 5.
+
+3
+00:00:09,839 --> 00:00:14,439
+Pure logic with no dependencies is the easiest code there is to test.
+
+4
+00:00:14,439 --> 00:00:25,839
+And yet it's often checked with a main method and a human comparing printed numbers, which doesn't run in CI and doesn't tell you which of eleven pricing rules just broke.
+
+5
+00:00:26,739 --> 00:00:32,073
+Here's a cart total calculator: line totals, then a chain of pricing rules.
+
+6
+00:00:32,073 --> 00:00:36,553
+Pure logic, exactly the code that should be trivially testable.
+
+7
+00:00:37,003 --> 00:00:40,994
+A test framework gives you three things a main method can't.
+
+8
+00:00:40,994 --> 00:00:44,253
+A standard way to declare what should be checked.
+
+9
+00:00:44,253 --> 00:00:47,446
+Isolation, so one failure doesn't hide the next.
+
+10
+00:00:47,446 --> 00:00:51,104
+And a machine-readable result that a build can fail on.
+
+11
+00:00:52,004 --> 00:00:55,793
+JUnit 5 is three components released together.
+
+12
+00:00:55,793 --> 00:00:59,253
+The Platform discovers and launches tests.
+
+13
+00:00:59,253 --> 00:01:02,713
+It's the API build tools and IDEs talk to.
+
+14
+00:01:03,163 --> 00:01:07,153
+Jupiter is the programming model you actually write against.
+
+15
+00:01:07,603 --> 00:01:12,595
+And Vintage runs your existing JUnit 4 tests on the same platform.
+
+16
+00:01:12,595 --> 00:01:16,755
+So you can migrate gradually, with no big-bang cutover.
+
+17
+00:01:17,205 --> 00:01:19,745
+The other big change is extensions.
+
+18
+00:01:19,745 --> 00:01:26,278
+JUnit 4's RunWith gave you exactly one runner, so Mockito's and Spring's couldn't coexist.
+
+19
+00:01:26,278 --> 00:01:33,610
+ExtendWith composes, which is why Mockito, Spring and Testcontainers all work in the same test class.
+
+20
+00:01:34,510 --> 00:01:36,979
+Here's a test that fails usefully.
+
+21
+00:01:36,979 --> 00:01:38,577
+Arrange an empty cart.
+
+22
+00:01:38,577 --> 00:01:41,627
+Act, by calling total inside assertThrows.
+
+23
+00:01:41,627 --> 00:01:44,387
+And assert on the exception's message.
+
+24
+00:01:44,837 --> 00:01:47,002
+Three things are doing real work.
+
+25
+00:01:47,002 --> 00:01:56,254
+The name, method, scenario, expected result, means that when CI reports total empty cart throws, you know what broke before opening anything.
+
+26
+00:01:56,254 --> 00:02:02,093
+assertThrows returns the exception, so you can check you triggered the path you meant to.
+
+27
+00:02:02,093 --> 00:02:05,767
+Otherwise a NullPointerException from a typo would pass.
+
+28
+00:02:05,767 --> 00:02:13,509
+And JUnit creates a new instance of the class for every test, so a field mutated in one test can't leak into the next.
+
+29
+00:02:14,409 --> 00:02:18,839
+When one behaviour has several observable parts, use assertAll.
+
+30
+00:02:18,839 --> 00:02:22,495
+Every assertion runs, and every failure is reported.
+
+31
+00:02:22,945 --> 00:02:28,003
+Without it, the first failing assertion stops the method and hides the rest.
+
+32
+00:02:28,003 --> 00:02:35,190
+Knowing that both the status and the lines are wrong is usually a different diagnosis from either one alone.
+
+33
+00:02:36,090 --> 00:02:39,379
+Parameterized tests turn one test into many.
+
+34
+00:02:39,379 --> 00:02:45,583
+Each CSV row is an independent test with its own result, named from the parameters.
+
+35
+00:02:46,033 --> 00:02:51,583
+The boundary values, nine and ten, forty-nine and fifty, are the entire point.
+
+36
+00:02:51,583 --> 00:02:53,504
+Off-by-one bugs live there.
+
+37
+00:02:53,504 --> 00:03:00,263
+A loop inside one test would report a single failure and leave you hunting for which iteration.
+
+38
+00:03:00,713 --> 00:03:08,713
+When the arguments are objects rather than literals, use MethodSource, with a static method returning a stream of arguments.
+
+39
+00:03:09,613 --> 00:03:12,694
+Nested classes group tests by precondition.
+
+40
+00:03:12,694 --> 00:03:15,775
+The outer setup creates ten units of stock.
+
+41
+00:03:15,775 --> 00:03:20,146
+The inner class, when stock is insufficient, drains it first.
+
+42
+00:03:20,146 --> 00:03:25,591
+Lifecycle methods run outside in: the outer before-each, then the inner one.
+
+43
+00:03:26,041 --> 00:03:29,021
+And the report reads like a specification.
+
+44
+00:03:29,021 --> 00:03:32,568
+When stock is available, it reserves the quantity.
+
+45
+00:03:32,568 --> 00:03:37,817
+When stock is insufficient, it refuses, and leaves the quantity unchanged.
+
+46
+00:03:38,717 --> 00:03:39,553
+A few traps.
+
+47
+00:03:39,553 --> 00:03:42,897
+Disabled means the test is broken or irrelevant.
+
+48
+00:03:42,897 --> 00:03:50,142
+An assumption means the test is fine, but its preconditions aren't met here, like a missing sandbox URL.
+
+49
+00:03:50,142 --> 00:03:55,507
+It's reported as skipped, not passed, so it doesn't inflate your green count.
+
+50
+00:03:55,957 --> 00:04:00,635
+assertTimeoutPreemptively runs the code on a different thread.
+
+51
+00:04:00,635 --> 00:04:08,030
+So thread-local state, like a Spring transaction, security context, or logging MDC, isn't visible.
+
+52
+00:04:08,030 --> 00:04:12,255
+Prefer plain assertTimeout unless you must abort a hang.
+
+53
+00:04:12,705 --> 00:04:14,293
+And parallel execution.
+
+54
+00:04:14,293 --> 00:04:20,574
+The conservative setting runs classes concurrently and methods within a class sequentially.
+
+55
+00:04:20,574 --> 00:04:24,715
+Turning it on surfaces every hidden dependency in the suite.
+
+56
+00:04:24,715 --> 00:04:27,959
+A good audit, but not the day before a release.
+
+57
+00:04:28,859 --> 00:04:30,213
+Production rules.
+
+58
+00:04:30,213 --> 00:04:33,796
+Name tests method, scenario, expected result.
+
+59
+00:04:33,796 --> 00:04:36,026
+Follow arrange, act, assert.
+
+60
+00:04:36,026 --> 00:04:38,256
+Parameterize the boundaries.
+
+61
+00:04:38,256 --> 00:04:41,601
+Group with nested classes by precondition.
+
+62
+00:04:41,601 --> 00:04:43,910
+Assert on exception messages.
+
+63
+00:04:43,910 --> 00:04:46,459
+Use the BOM, and tag slow tests.
+
+64
+00:04:46,909 --> 00:04:48,836
+Never depend on test order.
+
+65
+00:04:48,836 --> 00:04:54,547
+Never write assertTrue of a dot equals b, which prints expected true, was false.
+
+66
+00:04:54,547 --> 00:04:57,617
+Use assertEquals, which prints both values.
+
+67
+00:04:57,617 --> 00:05:00,330
+Never disable a test without a reason.
+
+68
+00:05:00,330 --> 00:05:03,328
+Never put loops or conditionals in a test.
+
+69
+00:05:03,328 --> 00:05:07,111
+And never depend on the system clock: inject a Clock.
+
+70
+00:05:08,011 --> 00:05:08,644
+To recap.
+
+71
+00:05:08,644 --> 00:05:15,321
+The Platform launches tests, Jupiter is what you write, and Vintage lets you migrate gradually.
+
+72
+00:05:15,321 --> 00:05:16,656
+Extensions compose.
+
+73
+00:05:16,656 --> 00:05:22,841
+Use assertThrows with a message check, and assertAll for several parts of one behaviour.
+
+74
+00:05:22,841 --> 00:05:27,339
+Parameterize the boundaries, and use nested classes for context.
+
+75
+00:05:27,789 --> 00:05:31,256
+Next is chapter forty-two: Mockito and test doubles.
+
+76
+00:05:31,256 --> 00:05:32,589
+Thanks for watching.

@@ -73,3 +73,9 @@ Narrated 1080p slide walkthroughs, one per chapter, with English subtitles. Each
 | 38 | [Stream Gatherers](05-runtime/38-stream-gatherers.md) | 5:07 | <a href="../videos/ch38.mp4" download>MP4</a> · <a href="../videos/ch38.srt" download>SRT</a> |
 | 39 | [FFM API & Vector API](05-runtime/39-ffm-and-vector-api.md) | 5:51 | <a href="../videos/ch39.mp4" download>MP4</a> · <a href="../videos/ch39.srt" download>SRT</a> |
 | 40 | [The HTTP Client (HTTP/3)](05-runtime/40-http-client.md) | 5:26 | <a href="../videos/ch40.mp4" download>MP4</a> · <a href="../videos/ch40.srt" download>SRT</a> |
+
+## Testing
+
+| Ch | Chapter | Length | Download |
+|---|---|---|---|
+| 41 | [JUnit 5](06-testing/41-junit5.md) | 5:33 | <a href="../videos/ch41.mp4" download>MP4</a> · <a href="../videos/ch41.srt" download>SRT</a> |
