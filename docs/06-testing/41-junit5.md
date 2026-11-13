@@ -7,6 +7,16 @@ tags: [testing, junit]
 
 # JUnit 5
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch41.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch41.vtt">
+</video>
+<figcaption>Video walkthrough · 5:33 · subtitles via CC · <a href="../../videos/ch41.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L1 Foundations · **Prerequisites:** none beyond core Java
