@@ -7,6 +7,16 @@ tags: [testing, concurrency, jcstress, awaitility]
 
 # Testing Concurrent Code
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch44.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch44.vtt">
+</video>
+<figcaption>Video walkthrough · 6:35 · subtitles via CC · <a href="../../videos/ch44.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L4 Architect · **Prerequisites:** [JUnit 5](41-junit5.md), [The Java Memory Model](../04-concurrency/26-java-memory-model.md), [Locks, Atomics & java.util.concurrent](../04-concurrency/27-locks-and-atomics.md)
