@@ -7,6 +7,16 @@ tags: [platform, tooling, javac, jshell, javap]
 
 # The Toolchain
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch03.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch03.vtt">
+</video>
+<figcaption>Video walkthrough · 6:01 · subtitles via CC · <a href="../../videos/ch03.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [The JDK Landscape](01-jdk-landscape.md)

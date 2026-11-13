@@ -7,6 +7,16 @@ tags: [platform, jdk, versions, licensing]
 
 # The JDK Landscape (8 → 26)
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch01.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch01.vtt">
+</video>
+<figcaption>Video walkthrough · 7:50 · subtitles via CC · <a href="../../videos/ch01.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L1 Foundations · **Prerequisites:** none

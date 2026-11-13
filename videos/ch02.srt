@@ -1,0 +1,383 @@
+1
+00:00:00,600 --> 00:00:04,265
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,265 --> 00:00:07,619
+This is chapter two: the JVM runtime model.
+
+3
+00:00:08,069 --> 00:00:12,840
+You can write Java for years without a model of the runtime underneath it.
+
+4
+00:00:12,840 --> 00:00:19,482
+Then a container gets killed with a healthy-looking heap, or a benchmark lies to you, and you need one.
+
+5
+00:00:20,382 --> 00:00:23,050
+Three failures with the same root cause.
+
+6
+00:00:23,050 --> 00:00:26,918
+First, a container killed with exit code one thirty-seven.
+
+7
+00:00:26,918 --> 00:00:33,988
+The heap was capped at two gigabytes in a two gigabyte container, and it never went above one point eight.
+
+8
+00:00:33,988 --> 00:00:38,323
+The kernel killed it anyway, because the heap is not the process.
+
+9
+00:00:38,773 --> 00:00:45,856
+Second, two errors that look the same and aren't: ClassNotFoundException, and NoClassDefFoundError.
+
+10
+00:00:46,306 --> 00:00:53,394
+And third, a benchmark where the same code on the same data gets a hundred and fifty times faster.
+
+11
+00:00:53,394 --> 00:00:58,167
+Nothing changed, except how many times the JVM had watched it run.
+
+12
+00:00:59,067 --> 00:01:01,686
+Here are the JVM's memory regions.
+
+13
+00:01:01,686 --> 00:01:08,155
+The heap holds every object and array, and it's the only thing minus X M X controls.
+
+14
+00:01:08,605 --> 00:01:14,429
+Metaspace holds class metadata, in native memory, and it's unbounded by default.
+
+15
+00:01:14,879 --> 00:01:18,527
+Every thread has its own stack, about a megabyte each.
+
+16
+00:01:18,977 --> 00:01:22,532
+The code cache holds JIT-compiled machine code.
+
+17
+00:01:22,532 --> 00:01:24,877
+When it fills, nothing crashes.
+
+18
+00:01:24,877 --> 00:01:28,129
+The application just gets slower, silently.
+
+19
+00:01:28,579 --> 00:01:33,273
+And direct memory holds direct byte buffers and foreign memory segments.
+
+20
+00:01:33,723 --> 00:01:40,160
+So the single most useful fact in this chapter: the heap flag bounds the heap, not the process.
+
+21
+00:01:40,160 --> 00:01:45,648
+The real footprint is all of these added together, plus the JVM's own structures.
+
+22
+00:01:46,548 --> 00:01:49,536
+Add it up for that two gigabyte container.
+
+23
+00:01:49,536 --> 00:01:57,149
+Two gigabytes of heap, plus metaspace, code cache, two hundred thread stacks, and the JVM's own structures.
+
+24
+00:01:57,149 --> 00:02:01,417
+Around two point six gigabytes, in a two gigabyte container.
+
+25
+00:02:01,867 --> 00:02:04,462
+Instead, let the JVM size itself.
+
+26
+00:02:04,462 --> 00:02:11,538
+Container support has been on by default since Java 10, so the JVM reads the cgroup limit.
+
+27
+00:02:11,538 --> 00:02:17,671
+MaxRAMPercentage of about seventy leaves room for everything outside the heap.
+
+28
+00:02:17,671 --> 00:02:19,873
+Then tune with measurements.
+
+29
+00:02:20,323 --> 00:02:26,708
+To see where native memory goes, turn on native memory tracking and ask jcmd for a summary.
+
+30
+00:02:26,708 --> 00:02:32,461
+The gap between the heap and the total is what your container sizing has to cover.
+
+31
+00:02:33,361 --> 00:02:36,541
+Every class goes through the same pipeline.
+
+32
+00:02:36,541 --> 00:02:44,010
+It's loaded, verified, prepared, resolved, and finally initialised, when its static initialisers run.
+
+33
+00:02:44,010 --> 00:02:48,743
+Initialisation is lazy: it happens on first use, not at startup.
+
+34
+00:02:49,193 --> 00:02:51,351
+Which explains the two errors.
+
+35
+00:02:51,351 --> 00:02:58,043
+ClassNotFoundException is a checked exception from an explicit lookup like Class dot forName.
+
+36
+00:02:58,043 --> 00:03:05,525
+NoClassDefFoundError comes from the JVM itself: the class existed at compile time but can't be used now.
+
+37
+00:03:05,525 --> 00:03:08,116
+Usually that's a missing dependency.
+
+38
+00:03:08,116 --> 00:03:12,361
+But it can also mean the class's static initialiser failed.
+
+39
+00:03:13,261 --> 00:03:15,572
+Here's the trap that wastes hours.
+
+40
+00:03:15,572 --> 00:03:22,370
+A class loads its config in a static field initialiser, and the file is missing in this environment.
+
+41
+00:03:22,820 --> 00:03:27,988
+The first use throws ExceptionInInitializerError, with the real cause.
+
+42
+00:03:27,988 --> 00:03:31,753
+But the class is now marked erroneous, permanently.
+
+43
+00:03:31,753 --> 00:03:37,881
+Every use after that reports only NoClassDefFoundError: could not initialise class.
+
+44
+00:03:38,331 --> 00:03:44,855
+So when you see that message, search backwards in the log for the first ExceptionInInitializerError.
+
+45
+00:03:44,855 --> 00:03:46,551
+That's where the cause is.
+
+46
+00:03:46,551 --> 00:03:49,617
+And don't do heavy work in static initialisers.
+
+47
+00:03:50,517 --> 00:03:52,685
+Class loaders form a hierarchy.
+
+48
+00:03:52,685 --> 00:03:59,399
+Your application loader, the platform loader, and the bootstrap loader that holds java dot base.
+
+49
+00:03:59,399 --> 00:04:01,567
+Each one asks its parent first.
+
+50
+00:04:02,017 --> 00:04:08,128
+Parent-first delegation is why you can't shadow java dot lang dot String with your own.
+
+51
+00:04:08,128 --> 00:04:17,399
+And it's why two copies of a library on the classpath resolve to whichever the application loader finds first: the classic JAR hell.
+
+52
+00:04:17,849 --> 00:04:21,124
+A class's identity is its name plus its loader.
+
+53
+00:04:21,124 --> 00:04:25,514
+The same bytes loaded by two loaders are two different classes.
+
+54
+00:04:25,514 --> 00:04:27,744
+So Order can't be cast to Order.
+
+55
+00:04:27,744 --> 00:04:31,438
+Baffling until you know the rule, obvious afterwards.
+
+56
+00:04:32,338 --> 00:04:34,144
+Now the lying benchmark.
+
+57
+00:04:34,144 --> 00:04:36,477
+Code starts in the interpreter.
+
+58
+00:04:36,477 --> 00:04:44,455
+After a few hundred calls, the C1 compiler produces quick, lightly optimised code with profiling counters.
+
+59
+00:04:44,455 --> 00:04:48,594
+After about ten thousand, C2 produces the fast version.
+
+60
+00:04:49,044 --> 00:04:52,641
+C2 optimises using assumptions from that profile.
+
+61
+00:04:52,641 --> 00:04:58,440
+That a call site only ever sees one implementation, or a branch is never taken.
+
+62
+00:04:58,440 --> 00:05:05,413
+If an assumption is later violated, the compiled code is thrown away, and execution falls back.
+
+63
+00:05:05,413 --> 00:05:07,028
+That's deoptimisation.
+
+64
+00:05:07,478 --> 00:05:10,715
+You can watch it happen with PrintCompilation.
+
+65
+00:05:10,715 --> 00:05:14,655
+Tier four is C2, and made not entrant means deoptimised.
+
+66
+00:05:14,655 --> 00:05:22,113
+If one method keeps cycling through that, something on its call path keeps breaking the JIT's assumptions.
+
+67
+00:05:22,563 --> 00:05:27,233
+So any benchmark without a warmup phase measures the interpreter.
+
+68
+00:05:27,233 --> 00:05:28,813
+That's why JMH exists.
+
+69
+00:05:29,713 --> 00:05:31,043
+A few quiet costs.
+
+70
+00:05:31,043 --> 00:05:36,509
+Metaspace is reclaimed only when a whole class loader becomes unreachable.
+
+71
+00:05:36,509 --> 00:05:44,191
+One lingering reference keeps every class that loader defined alive, which is the classic redeploy leak.
+
+72
+00:05:44,191 --> 00:05:46,481
+So cap metaspace and fail fast.
+
+73
+00:05:46,931 --> 00:05:49,425
+Escape analysis cuts the other way.
+
+74
+00:05:49,425 --> 00:05:54,128
+If an object never leaves a method, the JIT may never allocate it.
+
+75
+00:05:54,128 --> 00:06:01,609
+A short-lived Optional often costs nothing, so avoid-allocation advice needs measurement, not assumption.
+
+76
+00:06:02,059 --> 00:06:03,370
+And object layout.
+
+77
+00:06:03,370 --> 00:06:09,779
+Every object has a header: twelve bytes, or eight with Java 25's compact object headers.
+
+78
+00:06:09,779 --> 00:06:17,717
+References are four bytes thanks to compressed oops, which only works up to about a thirty-two gigabyte heap.
+
+79
+00:06:18,617 --> 00:06:19,885
+Production rules.
+
+80
+00:06:19,885 --> 00:06:26,371
+Size containers for the whole process, using MaxRAMPercentage rather than a fixed heap.
+
+81
+00:06:26,371 --> 00:06:30,099
+Cap metaspace, and dump the heap on out-of-memory.
+
+82
+00:06:30,099 --> 00:06:34,199
+Turn on native memory tracking where footprint matters.
+
+83
+00:06:34,199 --> 00:06:37,703
+Use jcmd as your single diagnostic entry point.
+
+84
+00:06:37,703 --> 00:06:40,015
+And warm up before you measure.
+
+85
+00:06:40,465 --> 00:06:43,931
+Never set the heap equal to the container limit.
+
+86
+00:06:43,931 --> 00:06:48,986
+Never raise the stack size before confirming the recursion is bounded.
+
+87
+00:06:48,986 --> 00:06:52,885
+Never assume NoClassDefFoundError means a missing JAR.
+
+88
+00:06:52,885 --> 00:06:55,196
+Never ignore code cache is full.
+
+89
+00:06:55,196 --> 00:06:58,662
+And never do heavy work in a static initialiser.
+
+90
+00:06:59,562 --> 00:07:00,208
+To recap.
+
+91
+00:07:00,208 --> 00:07:06,091
+The heap flag bounds the heap, not the process, so size containers for everything.
+
+92
+00:07:06,091 --> 00:07:11,832
+A failed static initialiser poisons its class for good, so read the first error.
+
+93
+00:07:11,832 --> 00:07:15,204
+A class's identity is its name plus its loader.
+
+94
+00:07:15,204 --> 00:07:23,455
+And code moves from interpreter to C1 to C2, and back again on deoptimisation, which is why benchmarks need warmup.
+
+95
+00:07:23,905 --> 00:07:26,246
+Next is chapter three: the toolchain.
+
+96
+00:07:26,246 --> 00:07:27,511
+Thanks for watching.
