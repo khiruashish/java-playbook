@@ -1,0 +1,267 @@
+1
+00:00:00,600 --> 00:00:04,223
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,223 --> 00:00:10,776
+This is chapter thirty-nine: the foreign function and memory API, and the Vector API.
+
+3
+00:00:11,226 --> 00:00:13,660
+Java had two long-standing gaps.
+
+4
+00:00:13,660 --> 00:00:20,048
+Calling native code was so painful that people used sun dot misc dot Unsafe instead.
+
+5
+00:00:20,048 --> 00:00:24,915
+And the SIMD instructions in every modern CPU were out of reach.
+
+6
+00:00:24,915 --> 00:00:27,044
+The first gap is now closed.
+
+7
+00:00:27,044 --> 00:00:29,402
+The second is still incubating.
+
+8
+00:00:30,302 --> 00:00:40,912
+Calling a native library meant JNI: a C file, a generated header, a shared library built per platform, and a build pipeline for all of it.
+
+9
+00:00:40,912 --> 00:00:45,449
+And every mistake was a JVM crash rather than an exception.
+
+10
+00:00:45,899 --> 00:00:57,690
+Off-heap memory meant a direct ByteBuffer, capped at two gigabytes and freed only when the GC got round to it, or Unsafe, with no bounds checks and no lifetimes.
+
+11
+00:00:57,690 --> 00:01:00,107
+A use-after-free crashed the JVM.
+
+12
+00:01:00,557 --> 00:01:02,332
+And SIMD was invisible.
+
+13
+00:01:02,332 --> 00:01:11,053
+A CPU can add eight integers in one instruction, but Java could only write a loop and hope the JIT vectorised it.
+
+14
+00:01:11,953 --> 00:01:17,723
+The foreign function and memory API, final in Java 22, has five concepts.
+
+15
+00:01:17,723 --> 00:01:22,939
+An Arena is a lifetime: when memory is freed and who can touch it.
+
+16
+00:01:23,389 --> 00:01:28,637
+A MemorySegment is a region with a known size and lifetime, on or off the heap.
+
+17
+00:01:29,087 --> 00:01:33,759
+A MemoryLayout describes its structure: fields, padding and arrays.
+
+18
+00:01:34,209 --> 00:01:38,497
+A VarHandle gives typed access derived from the layout, with checks.
+
+19
+00:01:38,947 --> 00:01:42,937
+And the Linker binds a native function to a Java method handle.
+
+20
+00:01:43,387 --> 00:01:46,579
+The design point is that safety isn't optional.
+
+21
+00:01:46,579 --> 00:01:51,199
+Every access checks bounds and checks that the arena is still alive.
+
+22
+00:01:51,199 --> 00:01:55,479
+So a use-after-free becomes an exception, not a corrupted heap.
+
+23
+00:01:55,479 --> 00:01:58,128
+That's the real difference from Unsafe.
+
+24
+00:01:59,028 --> 00:02:05,631
+Allocate eight megabytes of off-heap longs in a confined arena, inside try-with-resources.
+
+25
+00:02:05,631 --> 00:02:11,721
+They're freed at the closing brace, deterministically, not whenever the GC decides.
+
+26
+00:02:12,171 --> 00:02:20,257
+And if a segment escapes its arena and you touch it afterwards, you get an IllegalStateException, already closed.
+
+27
+00:02:20,257 --> 00:02:24,907
+With Unsafe, the same mistake corrupts memory or crashes the JVM.
+
+28
+00:02:25,357 --> 00:02:34,736
+Confined arenas are the default choice: deterministic freeing, and single-thread confinement that makes the lifetime check cheap.
+
+29
+00:02:34,736 --> 00:02:40,333
+Shared arenas allow any thread, and automatic arenas leave freeing to the GC.
+
+30
+00:02:41,233 --> 00:02:45,457
+A C struct is described once as a layout, with named fields.
+
+31
+00:02:45,457 --> 00:02:52,214
+VarHandles then give typed, checked access to each field, with offsets computed from the layout.
+
+32
+00:02:52,214 --> 00:02:56,508
+So adding a field doesn't silently shift every read after it.
+
+33
+00:02:56,958 --> 00:03:02,692
+Calling native code needs no C file, no generated header and no platform build.
+
+34
+00:03:02,692 --> 00:03:09,296
+Describe the function's signature, look up the symbol, and call it through a method handle.
+
+35
+00:03:09,296 --> 00:03:11,401
+Here, the C library's strlen.
+
+36
+00:03:11,851 --> 00:03:23,221
+For a real library, jextract reads the C headers and generates all the layouts and handles, removing the most error-prone step: transcribing signatures by hand.
+
+37
+00:03:24,121 --> 00:03:27,021
+Native access is a restricted operation.
+
+38
+00:03:27,021 --> 00:03:33,836
+From Java 24, using it without permission prints a warning, and it's heading towards an error.
+
+39
+00:03:33,836 --> 00:03:36,374
+Grant it with enable-native-access.
+
+40
+00:03:36,374 --> 00:03:43,044
+It's the same integrity-by-default direction as the encapsulation changes in chapter eleven.
+
+41
+00:03:43,494 --> 00:03:54,587
+Compared to the alternatives, memory segments have no two-gigabyte limit, free deterministically, describe struct layouts, and make native interop first class.
+
+42
+00:03:55,037 --> 00:03:58,075
+But the honest default is still a plain array.
+
+43
+00:03:58,075 --> 00:04:07,517
+Go off-heap only when the data is large, long-lived, and GC pressure is measured to be the problem, or when you must share it with native code.
+
+44
+00:04:08,417 --> 00:04:11,056
+The Vector API makes SIMD explicit.
+
+45
+00:04:11,056 --> 00:04:20,328
+Pick the CPU's preferred vector species, load a vector's worth of integers at a time, add, and reduce the lanes at the end.
+
+46
+00:04:20,328 --> 00:04:23,946
+Then handle the leftover tail with a plain loop.
+
+47
+00:04:23,946 --> 00:04:27,489
+On AVX2, that's eight integers per instruction.
+
+48
+00:04:27,939 --> 00:04:35,454
+But it's still in an incubator module, jdk dot incubator dot vector, where it has been since Java 16.
+
+49
+00:04:35,454 --> 00:04:41,778
+It's waiting on Project Valhalla's value types, so vectors don't cost an object each.
+
+50
+00:04:41,778 --> 00:04:48,697
+Incubator APIs will change, so keep it behind your own interface and out of shared libraries.
+
+51
+00:04:49,597 --> 00:04:50,987
+Production rules.
+
+52
+00:04:50,987 --> 00:04:53,767
+Use FFM instead of JNI and Unsafe.
+
+53
+00:04:53,767 --> 00:04:57,201
+Use confined arenas in try-with-resources.
+
+54
+00:04:57,201 --> 00:05:02,679
+Describe memory with layouts and VarHandles, not offset arithmetic.
+
+55
+00:05:02,679 --> 00:05:05,295
+Use jextract for real libraries.
+
+56
+00:05:05,295 --> 00:05:08,157
+And grant native access explicitly.
+
+57
+00:05:08,607 --> 00:05:10,871
+Never write new code on Unsafe.
+
+58
+00:05:10,871 --> 00:05:14,085
+Never go off-heap without a measured reason.
+
+59
+00:05:14,085 --> 00:05:16,861
+Never let segments escape their arena.
+
+60
+00:05:16,861 --> 00:05:20,660
+And never put incubator APIs in published libraries.
+
+61
+00:05:21,560 --> 00:05:22,284
+To recap.
+
+62
+00:05:22,284 --> 00:05:28,642
+The foreign function and memory API, final in Java 22, replaces JNI and Unsafe.
+
+63
+00:05:28,642 --> 00:05:33,874
+Arenas give deterministic lifetimes, and every access is checked.
+
+64
+00:05:33,874 --> 00:05:38,542
+Layouts describe structs, and jextract generates bindings.
+
+65
+00:05:38,542 --> 00:05:43,853
+And the Vector API makes SIMD explicit, but it's still incubating.
+
+66
+00:05:44,303 --> 00:05:48,934
+Next is chapter forty, the last in this batch: the HTTP client.
+
+67
+00:05:48,934 --> 00:05:50,405
+Thanks for watching.

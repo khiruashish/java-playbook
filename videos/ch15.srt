@@ -1,0 +1,375 @@
+1
+00:00:00,600 --> 00:00:03,863
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,863 --> 00:00:07,960
+This is chapter fifteen: a post-mortem on string templates.
+
+3
+00:00:08,410 --> 00:00:15,132
+String templates were previewed in Java 21, previewed again in 22, and then removed.
+
+4
+00:00:15,132 --> 00:00:17,452
+They ship in no released JDK.
+
+5
+00:00:17,452 --> 00:00:23,854
+Yet plenty of articles from 2023 and 2024 describe them as part of the language.
+
+6
+00:00:23,854 --> 00:00:30,255
+That makes them the perfect case study in how to adopt new Java features safely.
+
+7
+00:00:31,155 --> 00:00:35,659
+String interpolation is Java's most requested missing feature.
+
+8
+00:00:35,659 --> 00:00:40,307
+Concatenation is readable at three pieces and unreadable at six.
+
+9
+00:00:40,757 --> 00:00:44,186
+But the deeper problem was never readability.
+
+10
+00:00:44,186 --> 00:00:45,253
+It was safety.
+
+11
+00:00:45,253 --> 00:00:49,062
+Concatenating values into SQL gives you injection.
+
+12
+00:00:49,062 --> 00:00:54,091
+Concatenating user input into HTML gives you cross-site scripting.
+
+13
+00:00:54,541 --> 00:00:59,497
+Every language with plain interpolation makes those bugs easier to write.
+
+14
+00:00:59,497 --> 00:01:09,410
+Making concatenation convenient without making injection convenient is the problem string templates tried to solve, and ultimately what sank them.
+
+15
+00:01:10,310 --> 00:01:12,141
+Here's what was proposed.
+
+16
+00:01:12,141 --> 00:01:15,656
+Note, none of this compiles on any released JDK.
+
+17
+00:01:15,656 --> 00:01:20,635
+You'd write STR dot, then a string with backslash-brace expressions.
+
+18
+00:01:21,085 --> 00:01:24,463
+The key design choice: a template was not a string.
+
+19
+00:01:24,463 --> 00:01:29,960
+It was an object holding the literal fragments and the evaluated values separately.
+
+20
+00:01:30,410 --> 00:01:34,114
+A template processor then decided what to produce.
+
+21
+00:01:34,114 --> 00:01:35,744
+STR would concatenate.
+
+22
+00:01:35,744 --> 00:01:42,857
+But a SQL processor could bind the values as parameters, never letting them into the query text.
+
+23
+00:01:42,857 --> 00:01:45,450
+A JSON processor could escape them.
+
+24
+00:01:45,900 --> 00:01:49,100
+So the safe form would have been the convenient one.
+
+25
+00:01:49,100 --> 00:01:52,855
+No other mainstream language's interpolation works like that.
+
+26
+00:01:53,755 --> 00:01:55,295
+Why was it withdrawn?
+
+27
+00:01:55,295 --> 00:01:56,616
+First, ergonomics.
+
+28
+00:01:56,616 --> 00:02:03,952
+Writing STR dot in front of every template, with a static import, read as noise for the common case.
+
+29
+00:02:04,402 --> 00:02:11,783
+Second, the backslash-brace syntax was unusual among languages and tangled with existing escaping rules.
+
+30
+00:02:12,233 --> 00:02:13,827
+Third, scope confusion.
+
+31
+00:02:13,827 --> 00:02:17,638
+Was it about interpolation, or about safe construction?
+
+32
+00:02:17,638 --> 00:02:20,895
+The design served both and excelled at neither.
+
+33
+00:02:21,345 --> 00:02:23,860
+And finally, finality is forever.
+
+34
+00:02:23,860 --> 00:02:28,738
+Once final, the syntax and the processor API could never change.
+
+35
+00:02:28,738 --> 00:02:34,913
+The JDK team chose to withdraw rather than ship a design they expected to regret.
+
+36
+00:02:35,363 --> 00:02:39,307
+A revised design may return, but nothing has been announced.
+
+37
+00:02:39,307 --> 00:02:41,016
+Don't assume any timeline.
+
+38
+00:02:41,916 --> 00:02:43,583
+So what do you use today?
+
+39
+00:02:43,583 --> 00:02:49,852
+For readability, a text block with dot formatted gets you very close to the templated version.
+
+40
+00:02:49,852 --> 00:02:56,721
+For logging, use parameterised log messages, which also skip building the string when the level is off.
+
+41
+00:02:57,171 --> 00:03:04,011
+And if you have a spike or training deck that uses STR, it won't compile on any current JDK.
+
+42
+00:03:04,011 --> 00:03:07,134
+The conversion to formatted is mechanical.
+
+43
+00:03:08,034 --> 00:03:12,982
+And for safety, which was the real goal, you don't need to wait.
+
+44
+00:03:12,982 --> 00:03:17,157
+Use prepared statement parameters for every SQL value.
+
+45
+00:03:17,157 --> 00:03:20,945
+Use a serializer for JSON, never string assembly.
+
+46
+00:03:20,945 --> 00:03:24,115
+Use an escaping template engine for HTML.
+
+47
+00:03:24,115 --> 00:03:26,125
+And encode URL parameters.
+
+48
+00:03:26,575 --> 00:03:32,354
+Every one of these separates structure from data, the same principle templates were built on.
+
+49
+00:03:32,354 --> 00:03:35,834
+Templates would have made the safe path more convenient.
+
+50
+00:03:35,834 --> 00:03:38,009
+They were never the only safe path.
+
+51
+00:03:38,909 --> 00:03:40,864
+Here's the general lesson.
+
+52
+00:03:40,864 --> 00:03:43,721
+New Java features move through stages.
+
+53
+00:03:43,721 --> 00:03:48,381
+Incubator modules are experiments, and their APIs will change.
+
+54
+00:03:48,831 --> 00:03:52,569
+Preview features are complete, but they may change or vanish.
+
+55
+00:03:52,569 --> 00:03:53,917
+There's no commitment.
+
+56
+00:03:53,917 --> 00:03:57,471
+That's what preview means, and string templates proved it.
+
+57
+00:03:57,921 --> 00:04:01,655
+Only final features are permanent and production-ready.
+
+58
+00:04:02,105 --> 00:04:04,608
+And preview isn't just a warning.
+
+59
+00:04:04,608 --> 00:04:15,231
+You need enable-preview at compile and run time, and the class files are stamped so they only load on the exact JDK release that built them.
+
+60
+00:04:15,231 --> 00:04:19,555
+Code compiled with preview on Java 25 will not run on 26.
+
+61
+00:04:20,455 --> 00:04:23,078
+Preview instability isn't theoretical.
+
+62
+00:04:23,078 --> 00:04:26,322
+String templates: two previews, then withdrawn.
+
+63
+00:04:26,772 --> 00:04:33,006
+Structured concurrency: five or more previews, and a substantial redesign.
+
+64
+00:04:33,006 --> 00:04:36,713
+Java 21 code using it doesn't compile on 25.
+
+65
+00:04:37,163 --> 00:04:44,417
+Scoped values went through an incubator and several API changes before finalising in 25.
+
+66
+00:04:44,867 --> 00:04:50,968
+The Vector API has been incubating since Java 16, waiting on Project Valhalla.
+
+67
+00:04:51,418 --> 00:04:59,943
+And records, sealed types and pattern matching show the process working as intended: previewed, refined, then finalised.
+
+68
+00:04:59,943 --> 00:05:04,064
+But two of these five cost real rework for early adopters.
+
+69
+00:05:04,064 --> 00:05:06,693
+That's the base rate to plan against.
+
+70
+00:05:07,593 --> 00:05:09,734
+So here's a workable policy.
+
+71
+00:05:09,734 --> 00:05:17,001
+Published libraries: never use preview features, because nobody on another JDK could load them.
+
+72
+00:05:17,451 --> 00:05:23,296
+Production services: final features only, or preview behind a flag you can remove.
+
+73
+00:05:23,746 --> 00:05:28,674
+Internal tooling and scripts: preview is fine, because rewriting them is cheap.
+
+74
+00:05:29,124 --> 00:05:33,412
+And spikes and evaluation: that's exactly what preview is for.
+
+75
+00:05:33,862 --> 00:05:36,840
+One habit matters more than any of these.
+
+76
+00:05:36,840 --> 00:05:46,065
+Treat any Java article without a JDK version as suspect, and check a feature's JEP status before believing a tutorial about it.
+
+77
+00:05:46,965 --> 00:05:48,324
+Production rules.
+
+78
+00:05:48,324 --> 00:05:52,962
+Use text blocks with formatted, and parameterised logging.
+
+79
+00:05:52,962 --> 00:06:01,438
+Use prepared statement parameters for every SQL value, serializers for JSON and escaping engines for HTML.
+
+80
+00:06:01,438 --> 00:06:04,797
+Check JEP status before adopting anything.
+
+81
+00:06:04,797 --> 00:06:11,114
+And run non-LTS releases in CI, to catch removals before your next LTS upgrade.
+
+82
+00:06:11,564 --> 00:06:13,716
+Never use string templates.
+
+83
+00:06:13,716 --> 00:06:16,983
+Never ship preview features in a library.
+
+84
+00:06:16,983 --> 00:06:22,801
+Never treat an API as stable just because it's been previewed many times.
+
+85
+00:06:22,801 --> 00:06:25,272
+Never trust an undated article.
+
+86
+00:06:25,272 --> 00:06:29,018
+Never build SQL, HTML or JSON by concatenation.
+
+87
+00:06:29,018 --> 00:06:32,684
+And never turn on enable-preview just in case.
+
+88
+00:06:33,584 --> 00:06:34,213
+To recap.
+
+89
+00:06:34,213 --> 00:06:39,172
+String templates were previewed twice and removed, and exist in no JDK.
+
+90
+00:06:39,172 --> 00:06:43,432
+Their real goal was safety, keeping structure and data apart.
+
+91
+00:06:43,432 --> 00:06:50,906
+Today, use text blocks with formatted for readability, and parameters, serializers and escaping for safety.
+
+92
+00:06:50,906 --> 00:06:56,773
+And remember that preview means no commitment, with class files tied to one release.
+
+93
+00:06:57,223 --> 00:07:00,150
+Next is chapter sixteen, generics in depth.
+
+94
+00:07:00,150 --> 00:07:01,511
+Thanks for watching.

@@ -1,0 +1,363 @@
+1
+00:00:00,600 --> 00:00:03,917
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,917 --> 00:00:07,021
+This is chapter nineteen: HashMap internals.
+
+3
+00:00:07,471 --> 00:00:13,453
+HashMap is the most used data structure in enterprise Java, and the most misunderstood.
+
+4
+00:00:13,453 --> 00:00:16,891
+Most developers say it's O of one, and stop there.
+
+5
+00:00:16,891 --> 00:00:26,586
+That answer misses the production incidents: maps that silently lose entries, lookups that degrade to scans, and rehashing storms under load.
+
+6
+00:00:27,486 --> 00:00:29,546
+A HashMap is an array of bins.
+
+7
+00:00:29,546 --> 00:00:31,881
+It starts with the key's hashCode.
+
+8
+00:00:32,331 --> 00:00:37,237
+That hash is spread: the high sixteen bits are mixed into the low sixteen.
+
+9
+00:00:37,687 --> 00:00:43,085
+Then the index is computed with a bitmask, table length minus one, AND the hash.
+
+10
+00:00:43,535 --> 00:00:50,511
+And the bin at that index is either empty, a short linked list, or, under heavy collision, a red-black tree.
+
+11
+00:00:50,961 --> 00:00:53,532
+Five constants govern its behaviour.
+
+12
+00:00:53,532 --> 00:00:56,604
+Default capacity sixteen, allocated lazily.
+
+13
+00:00:56,604 --> 00:00:58,676
+Load factor point seven five.
+
+14
+00:00:58,676 --> 00:01:07,319
+Bins become trees at eight entries and turn back into lists at six, so a bin at the boundary doesn't flip back and forth.
+
+15
+00:01:07,319 --> 00:01:12,891
+And below a table length of sixty-four, the map grows instead of making trees.
+
+16
+00:01:13,791 --> 00:01:16,821
+Here's the hash function from the JDK source.
+
+17
+00:01:17,271 --> 00:01:19,283
+A null key hashes to zero.
+
+18
+00:01:19,283 --> 00:01:24,780
+That's why a HashMap supports exactly one null key, always in bin zero.
+
+19
+00:01:25,230 --> 00:01:31,843
+The index is a bitmask, and for a sixteen-slot table it only looks at the bottom four bits.
+
+20
+00:01:31,843 --> 00:01:37,730
+A hashCode that varies only in its high bits would put every key in the same bin.
+
+21
+00:01:37,730 --> 00:01:41,364
+So the high bits are XORed down into the low ones.
+
+22
+00:01:41,364 --> 00:01:42,745
+One shift, one XOR.
+
+23
+00:01:43,195 --> 00:01:50,250
+And that bitmask is a cheap modulo that only works because the table length is always a power of two.
+
+24
+00:01:50,250 --> 00:01:53,115
+Ask for seventeen and you get thirty-two.
+
+25
+00:01:54,015 --> 00:01:58,683
+When a bin reaches eight nodes, the map considers making it a tree.
+
+26
+00:01:58,683 --> 00:02:10,669
+But below a table length of sixty-four, it resizes instead, because a long bin in a small table more likely means the table is too small than that the hash function is bad.
+
+27
+00:02:10,669 --> 00:02:13,108
+Inside a tree bin, lookup is log k.
+
+28
+00:02:13,558 --> 00:02:21,759
+That's the honest complexity statement: O of one on average, and O of log n in the worst case, since Java 8.
+
+29
+00:02:21,759 --> 00:02:32,011
+The old O of n answer describes Java 7, when attackers could send thousands of colliding keys and turn every lookup into a linear scan.
+
+30
+00:02:32,911 --> 00:02:37,855
+When size passes the threshold, capacity doubles and every entry moves.
+
+31
+00:02:37,855 --> 00:02:40,293
+Java 8 does this with a neat trick.
+
+32
+00:02:40,743 --> 00:02:50,833
+Because capacity is a power of two and exactly doubles, each entry either stays at the same index, or moves by exactly the old capacity.
+
+33
+00:02:51,283 --> 00:02:54,473
+A single bit of the cached hash decides which.
+
+34
+00:02:54,473 --> 00:03:02,099
+So each bin splits into a low list and a high list in one pass, with no rehashing, and the order is preserved.
+
+35
+00:03:02,549 --> 00:03:04,862
+That order preservation matters.
+
+36
+00:03:04,862 --> 00:03:13,174
+Java 7 reversed the lists, and two threads resizing at once could build a cycle that spun at a hundred percent CPU.
+
+37
+00:03:13,174 --> 00:03:17,944
+Java 8 removed that failure, but HashMap is still not thread-safe.
+
+38
+00:03:17,944 --> 00:03:20,619
+Concurrent writes still lose updates.
+
+39
+00:03:21,519 --> 00:03:25,619
+This is the HashMap bug that reaches production most often.
+
+40
+00:03:25,619 --> 00:03:29,303
+Put an entry with a mutable key, then change the key.
+
+41
+00:03:29,303 --> 00:03:34,585
+The hash changes, but the entry stays in the bin computed from the old hash.
+
+42
+00:03:34,585 --> 00:03:39,589
+So get returns null, containsKey returns false, but size still says one.
+
+43
+00:03:39,589 --> 00:03:43,620
+The entry is unreachable, unremovable, and leaked forever.
+
+44
+00:03:44,070 --> 00:03:48,778
+So keys must be immutable in every field used by hashCode and equals.
+
+45
+00:03:48,778 --> 00:03:51,985
+Records are the cleanest way to guarantee that.
+
+46
+00:03:52,885 --> 00:03:55,620
+Size the map when you know the count.
+
+47
+00:03:55,620 --> 00:04:02,420
+Building a two-hundred-thousand-entry catalogue from a default map triggers fifteen resizes.
+
+48
+00:04:02,420 --> 00:04:07,668
+Java 19's HashMap dot newHashMap sizes it so all entries fit with none.
+
+49
+00:04:07,668 --> 00:04:12,917
+Remember, the plain constructor takes a capacity, not an expected size.
+
+50
+00:04:13,367 --> 00:04:18,095
+And use merge and computeIfAbsent instead of get, check, put.
+
+51
+00:04:18,095 --> 00:04:22,203
+Merge collapses duplicate SKUs by summing quantities.
+
+52
+00:04:22,203 --> 00:04:25,847
+computeIfAbsent groups orders by delivery slot.
+
+53
+00:04:26,297 --> 00:04:34,538
+Compare putIfAbsent with a new ArrayList, which allocates a list on every single call and throws most of them away.
+
+54
+00:04:34,538 --> 00:04:38,265
+The computeIfAbsent lambda only runs the first time.
+
+55
+00:04:39,165 --> 00:04:43,704
+Every structural change bumps a modCount, and iterators check it.
+
+56
+00:04:43,704 --> 00:04:50,407
+So removing entries inside a for-each over the key set throws a ConcurrentModificationException.
+
+57
+00:04:50,857 --> 00:04:55,337
+Use removeIf on the entry set, or an explicit iterator's remove.
+
+58
+00:04:55,787 --> 00:05:02,014
+And remember, fail-fast is a best-effort bug detector, not a synchronisation mechanism.
+
+59
+00:05:02,014 --> 00:05:04,662
+Never write logic that depends on it.
+
+60
+00:05:05,562 --> 00:05:11,568
+Each entry is a Node object: a header, the cached hash, and three references.
+
+61
+00:05:11,568 --> 00:05:15,311
+That's thirty-two bytes on a typical 64-bit JVM.
+
+62
+00:05:15,761 --> 00:05:20,881
+Add the table array, about five bytes per entry at the default load factor.
+
+63
+00:05:21,331 --> 00:05:26,771
+Java 25's compact object headers shrink the Node to twenty-four bytes.
+
+64
+00:05:27,221 --> 00:05:34,885
+So a million-entry map costs around thirty-seven megabytes of overhead before a single key or value object.
+
+65
+00:05:34,885 --> 00:05:37,248
+On map-heavy heaps, that adds up.
+
+66
+00:05:38,148 --> 00:05:39,521
+Production rules.
+
+67
+00:05:39,521 --> 00:05:43,558
+Size maps with newHashMap when you know the count.
+
+68
+00:05:43,558 --> 00:05:45,172
+Use records as keys.
+
+69
+00:05:45,172 --> 00:05:47,837
+Prefer merge and computeIfAbsent.
+
+70
+00:05:47,837 --> 00:05:50,824
+Return Map dot copyOf from accessors.
+
+71
+00:05:50,824 --> 00:05:52,600
+Declare fields as Map.
+
+72
+00:05:52,600 --> 00:05:55,023
+And use EnumMap for enum keys.
+
+73
+00:05:55,473 --> 00:05:59,859
+Never share a HashMap across threads without safe publication.
+
+74
+00:05:59,859 --> 00:06:01,486
+Never use mutable keys.
+
+75
+00:06:01,486 --> 00:06:07,216
+Don't tune the load factor without measuring, because the default is well chosen.
+
+76
+00:06:07,216 --> 00:06:09,338
+Never rely on iteration order.
+
+77
+00:06:09,338 --> 00:06:13,582
+Avoid containsValue in hot paths, since it scans everything.
+
+78
+00:06:13,582 --> 00:06:17,190
+And never modify the map inside a compute function.
+
+79
+00:06:18,090 --> 00:06:24,831
+Java 8 brought treeified bins, the order-preserving resize, and merge, compute and getOrDefault.
+
+80
+00:06:25,281 --> 00:06:35,756
+Java 9 and 10 added Map dot of and copyOf, and made recursive updates inside computeIfAbsent throw instead of silently corrupting the map.
+
+81
+00:06:36,206 --> 00:06:38,745
+Java 19 added newHashMap.
+
+82
+00:06:39,195 --> 00:06:41,332
+Java 21 added SequencedMap.
+
+83
+00:06:41,332 --> 00:06:51,781
+And here's a correction to common notes: it applies to LinkedHashMap and TreeMap, not HashMap, because HashMap has no defined order.
+
+84
+00:06:52,231 --> 00:06:56,690
+And Java 25's compact headers shrink each Node by a quarter.
+
+85
+00:06:57,590 --> 00:06:58,232
+To recap.
+
+86
+00:06:58,232 --> 00:07:07,511
+The hash is spread, masked to an index, and lands in a bin that's a list, or a tree once it reaches eight in a large enough table.
+
+87
+00:07:07,511 --> 00:07:12,079
+Lookups are O of one on average and log n at worst since Java 8.
+
+88
+00:07:12,079 --> 00:07:16,646
+Resizing splits each bin by a single bit, so size maps up front.
+
+89
+00:07:16,646 --> 00:07:20,929
+And keys must be immutable, or entries get stranded forever.
+
+90
+00:07:21,379 --> 00:07:24,526
+Next is chapter twenty: sets, queues and deques.
+
+91
+00:07:24,526 --> 00:07:25,837
+Thanks for watching.

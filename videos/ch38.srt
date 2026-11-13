@@ -1,0 +1,251 @@
+1
+00:00:00,600 --> 00:00:04,100
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,100 --> 00:00:08,941
+This is chapter thirty-eight: stream gatherers, final in Java 24.
+
+3
+00:00:09,391 --> 00:00:16,463
+Since Java 8, you could extend the end of a stream with a custom collector, but the middle was closed.
+
+4
+00:00:16,463 --> 00:00:18,959
+Filter, map, flatMap, and that's it.
+
+5
+00:00:18,959 --> 00:00:24,853
+So batching, running totals and deduplicating by key all meant abandoning the stream.
+
+6
+00:00:24,853 --> 00:00:26,586
+Gatherers close that gap.
+
+7
+00:00:27,486 --> 00:00:31,704
+Here's batching orders into groups of a hundred before Java 24.
+
+8
+00:00:31,704 --> 00:00:40,542
+A loop, a current batch, and a check at the end for the trailing partial batch, which is the line most hand-written versions forget.
+
+9
+00:00:40,992 --> 00:00:49,359
+Same story for a running total, deduplicating by SKU, and calling a vendor API per SKU at most twenty at a time.
+
+10
+00:00:49,359 --> 00:00:55,335
+parallelStream can't do that last one, because it blocks the shared common pool.
+
+11
+00:00:55,335 --> 00:01:01,685
+Each needed state carried between elements, and the stream API had nowhere to put it.
+
+12
+00:01:02,585 --> 00:01:07,738
+A Gatherer is to intermediate operations what a Collector is to terminal ones.
+
+13
+00:01:07,738 --> 00:01:16,260
+It has four matching parts: an initializer for state, an integrator per element, a combiner for parallel streams, and a finisher.
+
+14
+00:01:16,260 --> 00:01:23,791
+The difference is that a gatherer pushes elements downstream as it goes, instead of accumulating into a container.
+
+15
+00:01:24,241 --> 00:01:26,526
+Control flows through two booleans.
+
+16
+00:01:26,526 --> 00:01:32,730
+Pushing downstream returns false when nothing downstream wants more, say a limit was satisfied.
+
+17
+00:01:32,730 --> 00:01:37,039
+And the integrator returns false to say this gatherer is finished.
+
+18
+00:01:37,039 --> 00:01:42,459
+That's what keeps laziness and short-circuiting working through a custom operation.
+
+19
+00:01:43,359 --> 00:01:45,051
+There are five built-ins.
+
+20
+00:01:45,051 --> 00:01:50,463
+windowFixed groups elements into lists of n, including the trailing partial one.
+
+21
+00:01:50,913 --> 00:01:56,268
+windowSliding produces overlapping windows that advance one element at a time.
+
+22
+00:01:56,718 --> 00:02:00,281
+fold accumulates everything into one value at the end.
+
+23
+00:02:00,731 --> 00:02:04,656
+scan emits the running accumulation, one value per input.
+
+24
+00:02:05,106 --> 00:02:12,334
+And mapConcurrent applies a function on virtual threads, at most limit at a time, preserving order.
+
+25
+00:02:12,334 --> 00:02:16,861
+That's the one that changes how you write I/O-bound pipelines.
+
+26
+00:02:17,761 --> 00:02:20,694
+Batching becomes one line in the pipeline.
+
+27
+00:02:20,694 --> 00:02:24,256
+windowFixed of a hundred, then dispatch each batch.
+
+28
+00:02:24,256 --> 00:02:29,494
+The trailing partial batch is emitted by its finisher, so that bug is gone.
+
+29
+00:02:29,944 --> 00:02:34,653
+A running total is scan, starting from zero and adding each line.
+
+30
+00:02:34,653 --> 00:02:37,624
+It emits the total so far for every line.
+
+31
+00:02:38,074 --> 00:02:44,162
+And a five-minute moving average is windowSliding of five, then averaging each window.
+
+32
+00:02:44,162 --> 00:02:49,189
+Before gatherers, that needed an indexed loop over a materialised list.
+
+33
+00:02:50,089 --> 00:02:51,883
+Here's the important one.
+
+34
+00:02:51,883 --> 00:02:57,410
+For each SKU, call the warehouse, a two-hundred-millisecond blocking request.
+
+35
+00:02:57,410 --> 00:03:06,814
+mapConcurrent of twenty runs at most twenty at once, on virtual threads, and keeps the results in order, inside an ordinary stream.
+
+36
+00:03:07,264 --> 00:03:13,345
+Compare parallelStream, which runs on the shared common pool, sized for CPU work.
+
+37
+00:03:13,345 --> 00:03:21,454
+Blocking I/O there starves every other parallel stream in the JVM, and you can't bound concurrency per call.
+
+38
+00:03:21,454 --> 00:03:27,835
+mapConcurrent gives you a bound, order preservation, and cancellation when one fails.
+
+39
+00:03:27,835 --> 00:03:32,565
+For I/O fan-out in a stream on Java 24, it's the right default.
+
+40
+00:03:33,465 --> 00:03:35,326
+Writing your own is short.
+
+41
+00:03:35,326 --> 00:03:39,118
+Here's distinctBy, the most-wanted missing operation.
+
+42
+00:03:39,118 --> 00:03:42,480
+The initializer creates a HashSet of seen keys.
+
+43
+00:03:42,480 --> 00:03:48,633
+The integrator adds each element's key, and pushes the element only if the key is new.
+
+44
+00:03:49,083 --> 00:03:50,448
+Two details matter.
+
+45
+00:03:50,448 --> 00:03:57,413
+It uses ofSequential, because a mutable set has no sensible combiner, so it's never parallelised.
+
+46
+00:03:57,413 --> 00:03:59,783
+That's correct, not a limitation.
+
+47
+00:03:59,783 --> 00:04:08,113
+And it returns the result of push, not true, so if a limit of ten downstream is satisfied, the whole pipeline stops.
+
+48
+00:04:09,013 --> 00:04:10,308
+Production rules.
+
+49
+00:04:10,308 --> 00:04:12,594
+Reach for the built-ins first.
+
+50
+00:04:12,594 --> 00:04:16,405
+Use mapConcurrent for I/O fan-out inside a stream.
+
+51
+00:04:16,405 --> 00:04:19,072
+Use ofSequential for mutable state.
+
+52
+00:04:19,072 --> 00:04:21,053
+Return the result of push.
+
+53
+00:04:21,053 --> 00:04:25,397
+And package reusable gatherers as static factory methods.
+
+54
+00:04:25,847 --> 00:04:28,947
+Never use parallelStream for blocking I/O.
+
+55
+00:04:28,947 --> 00:04:32,787
+Don't write a gatherer where map or filter would do.
+
+56
+00:04:32,787 --> 00:04:37,142
+Keep state inside the initializer, never shared outside it.
+
+57
+00:04:37,142 --> 00:04:39,948
+And never ignore push returning false.
+
+58
+00:04:40,848 --> 00:04:41,508
+To recap.
+
+59
+00:04:41,508 --> 00:04:48,696
+A gatherer extends the middle of a stream, with an initializer, integrator, combiner and finisher.
+
+60
+00:04:48,696 --> 00:04:52,070
+The built-ins handle windows, scans and folds.
+
+61
+00:04:52,070 --> 00:04:58,597
+And mapConcurrent gives bounded, ordered I/O on virtual threads, right inside a pipeline.
+
+62
+00:04:59,047 --> 00:05:05,213
+Next is chapter thirty-nine: the foreign function and memory API, and the Vector API.
+
+63
+00:05:05,213 --> 00:05:06,663
+Thanks for watching.

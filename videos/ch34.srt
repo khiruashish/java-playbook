@@ -1,0 +1,387 @@
+1
+00:00:00,600 --> 00:00:03,795
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,795 --> 00:00:09,368
+This is chapter thirty-four, the start of the runtime section: garbage collection.
+
+3
+00:00:09,818 --> 00:00:13,581
+GC is the part of the JVM most surrounded by folklore.
+
+4
+00:00:13,581 --> 00:00:19,993
+Flags get copied between projects for years after the collector they configured was removed.
+
+5
+00:00:19,993 --> 00:00:27,589
+The modern reality is simpler: choose the right collector, set the heap size and a pause target, and measure.
+
+6
+00:00:28,489 --> 00:00:31,419
+Three symptoms all get called a GC problem.
+
+7
+00:00:31,419 --> 00:00:37,484
+Latency spikes at the ninety-ninth percentile, when unlucky requests land during a pause.
+
+8
+00:00:37,484 --> 00:00:45,730
+Gradual death, where full collections run back to back, each reclaiming almost nothing, until GC overhead limit exceeded.
+
+9
+00:00:45,730 --> 00:00:55,134
+And the upgrade made it slower, because Java 9 switched the default collector from Parallel to G1, and that workload preferred throughput.
+
+10
+00:00:56,034 --> 00:01:01,848
+Every collector trades three things: throughput, latency, and memory footprint.
+
+11
+00:01:01,848 --> 00:01:03,688
+You can optimise for two.
+
+12
+00:01:03,688 --> 00:01:07,220
+Parallel maximises throughput, with long pauses.
+
+13
+00:01:07,220 --> 00:01:12,445
+ZGC and Shenandoah minimise pauses, at the cost of some CPU and memory.
+
+14
+00:01:12,445 --> 00:01:14,432
+Serial minimises footprint.
+
+15
+00:01:14,432 --> 00:01:17,965
+G1 is the default because it sits in the middle.
+
+16
+00:01:18,415 --> 00:01:21,924
+And collection works because most objects die young.
+
+17
+00:01:21,924 --> 00:01:28,538
+A young collection copies out the few survivors, so its cost depends on survivors, not on garbage.
+
+18
+00:01:28,538 --> 00:01:36,975
+That's why a high rate of short-lived allocation is far cheaper than it sounds, while medium-lived objects can be much worse.
+
+19
+00:01:37,875 --> 00:01:38,937
+The collectors.
+
+20
+00:01:38,937 --> 00:01:44,744
+Serial: long pauses, but smallest overhead, for tiny heaps and command-line tools.
+
+21
+00:01:45,194 --> 00:01:49,226
+Parallel: long pauses, but the highest throughput, for batch jobs.
+
+22
+00:01:49,676 --> 00:01:56,681
+G1, the default since Java 9: predictable pauses of roughly ten to two hundred milliseconds.
+
+23
+00:01:56,681 --> 00:01:58,508
+Right for most services.
+
+24
+00:01:58,958 --> 00:02:06,197
+ZGC: pauses under a millisecond, regardless of heap size, generational since Java 21.
+
+25
+00:02:06,197 --> 00:02:09,774
+For large heaps and latency-critical work.
+
+26
+00:02:10,224 --> 00:02:15,659
+And Shenandoah, also very low pause, generational since Java 25.
+
+27
+00:02:15,659 --> 00:02:19,141
+Between ZGC and Shenandoah, measure both.
+
+28
+00:02:20,041 --> 00:02:21,857
+Here's the honest default.
+
+29
+00:02:21,857 --> 00:02:25,979
+Size the heap as seventy percent of the container's memory.
+
+30
+00:02:25,979 --> 00:02:27,306
+Set a pause target.
+
+31
+00:02:27,306 --> 00:02:29,332
+Always log GC, with rotation.
+
+32
+00:02:29,332 --> 00:02:31,777
+And dump the heap on out of memory.
+
+33
+00:02:31,777 --> 00:02:35,828
+Then change nothing else until a measurement tells you to.
+
+34
+00:02:36,278 --> 00:02:37,840
+And what not to set.
+
+35
+00:02:37,840 --> 00:02:43,385
+Don't fix generation ratios under G1, because it sizes them adaptively.
+
+36
+00:02:43,385 --> 00:02:49,321
+Don't enable CMS, which was removed in Java 14, so the JVM won't even start.
+
+37
+00:02:49,321 --> 00:02:51,429
+PermGen flags are dead too.
+
+38
+00:02:51,429 --> 00:02:59,083
+And never paste a block of flags from a blog, which often configures a collector older than yours.
+
+39
+00:02:59,983 --> 00:03:07,331
+Reading a GC log line: uptime, collection type, cause, heap before and after, capacity, and the pause.
+
+40
+00:03:07,331 --> 00:03:11,221
+Look first at the size after collection, the live set.
+
+41
+00:03:11,221 --> 00:03:15,471
+Then the pause distribution, frequency, and any full pause.
+
+42
+00:03:15,921 --> 00:03:17,072
+Here's a problem.
+
+43
+00:03:17,072 --> 00:03:25,333
+Pauses of four to five hundred milliseconds against a two-hundred target, and the live set climbing after each collection.
+
+44
+00:03:25,333 --> 00:03:27,229
+The diagnosis isn't slow GC.
+
+45
+00:03:27,229 --> 00:03:29,870
+It's a heap too small for the live set.
+
+46
+00:03:29,870 --> 00:03:35,016
+Find out why the live set is so large with a heap dump, then raise the heap.
+
+47
+00:03:35,016 --> 00:03:37,319
+Adding flags would change nothing.
+
+48
+00:03:37,769 --> 00:03:39,017
+And here's healthy.
+
+49
+00:03:39,017 --> 00:03:45,455
+Collections every few hundred milliseconds, but each reclaims two gigabytes in eight milliseconds.
+
+50
+00:03:45,455 --> 00:03:47,360
+Almost everything dies young.
+
+51
+00:03:47,360 --> 00:03:49,331
+Frequency alone means nothing.
+
+52
+00:03:50,231 --> 00:03:51,864
+Two specific failures.
+
+53
+00:03:51,864 --> 00:04:03,142
+Humongous allocations: in G1, an object larger than half a region goes straight into contiguous old regions, causing fragmentation and full collections.
+
+54
+00:04:03,142 --> 00:04:05,887
+The log says G1 Humongous Allocation.
+
+55
+00:04:05,887 --> 00:04:12,119
+Usually the fix is to stream or chunk the data, rather than materialise a big array.
+
+56
+00:04:12,569 --> 00:04:21,097
+And GC overhead limit exceeded means over ninety-eight percent of time is going to collection, reclaiming under two percent.
+
+57
+00:04:21,097 --> 00:04:22,611
+It's not a GC failure.
+
+58
+00:04:22,611 --> 00:04:25,018
+It's a leak, or an undersized heap.
+
+59
+00:04:25,018 --> 00:04:36,228
+Take a heap dump, or a class histogram, which usually names the culprit immediately: an unbounded cache, a growing collection, or a ThreadLocal on a pooled thread.
+
+60
+00:04:37,128 --> 00:04:43,060
+Inside G1, the heap is divided into regions of one to thirty-two megabytes.
+
+61
+00:04:43,060 --> 00:04:50,100
+Generations are sets of regions, and G1 collects the regions with the most garbage first.
+
+62
+00:04:50,100 --> 00:04:52,552
+That's the name: garbage first.
+
+63
+00:04:53,002 --> 00:04:55,122
+The pause target is a budget.
+
+64
+00:04:55,122 --> 00:04:58,776
+G1 chooses how many regions to evacuate to fit it.
+
+65
+00:04:58,776 --> 00:05:08,789
+Set an impossible target, like five milliseconds on a large live set, and you get tiny collections run constantly, with worse throughput.
+
+66
+00:05:09,239 --> 00:05:19,960
+ZGC stores metadata in spare bits of each pointer, and every reference load passes through a barrier that repairs the reference if the object has moved.
+
+67
+00:05:19,960 --> 00:05:26,731
+So the application fixes references as it uses them, and ZGC can relocate objects while it runs.
+
+68
+00:05:26,731 --> 00:05:31,809
+Pauses become independent of heap size, for a few percent of throughput.
+
+69
+00:05:32,709 --> 00:05:34,608
+Allocation is nearly free.
+
+70
+00:05:34,608 --> 00:05:35,995
+Creating an object,
+
+71
+00:05:36,445 --> 00:05:41,565
+comes from a thread-local allocation buffer, a chunk of Eden owned by that thread,
+
+72
+00:05:42,015 --> 00:05:45,679
+so it's usually just a pointer bump and a bounds check.
+
+73
+00:05:45,679 --> 00:05:49,076
+A handful of instructions, with no synchronisation.
+
+74
+00:05:49,526 --> 00:05:55,094
+When the buffer fills, the thread gets a new one, and when Eden fills, a young collection runs.
+
+75
+00:05:55,544 --> 00:05:58,278
+So what's expensive isn't allocating.
+
+76
+00:05:58,278 --> 00:06:02,562
+It's an object that survives and gets copied and promoted.
+
+77
+00:06:02,562 --> 00:06:09,507
+And System dot gc usually triggers a full collection, the most expensive thing the JVM can do.
+
+78
+00:06:09,507 --> 00:06:10,541
+Don't call it.
+
+79
+00:06:11,441 --> 00:06:12,740
+Production rules.
+
+80
+00:06:12,740 --> 00:06:14,955
+Always log GC, with rotation.
+
+81
+00:06:14,955 --> 00:06:18,163
+Start with G1 and change only on evidence.
+
+82
+00:06:18,163 --> 00:06:20,607
+Set the heap and a pause target.
+
+83
+00:06:20,607 --> 00:06:24,961
+Watch the live set after collection, which reveals leaks.
+
+84
+00:06:24,961 --> 00:06:27,329
+Dump the heap on out of memory.
+
+85
+00:06:27,329 --> 00:06:31,836
+And treat any full pause under G1 as a signal, not routine.
+
+86
+00:06:32,286 --> 00:06:35,256
+Never copy GC flags from a blog.
+
+87
+00:06:35,256 --> 00:06:36,834
+Never enable CMS.
+
+88
+00:06:36,834 --> 00:06:40,268
+Never pin generation ratios under G1.
+
+89
+00:06:40,268 --> 00:06:43,888
+Never set an unachievable pause target.
+
+90
+00:06:43,888 --> 00:06:46,579
+And never call System dot gc.
+
+91
+00:06:47,479 --> 00:06:48,133
+To recap.
+
+92
+00:06:48,133 --> 00:06:51,836
+Collectors trade throughput, latency and footprint.
+
+93
+00:06:51,836 --> 00:06:57,863
+Use G1 by default, ZGC when pauses are the constraint, and Parallel for batch work.
+
+94
+00:06:57,863 --> 00:07:02,220
+Set the heap size, a pause target and logging, then measure.
+
+95
+00:07:02,220 --> 00:07:06,359
+And the live set after collection is what reveals a leak.
+
+96
+00:07:06,809 --> 00:07:11,247
+Next is chapter thirty-five: memory footprint and object layout.
+
+97
+00:07:11,247 --> 00:07:12,633
+Thanks for watching.

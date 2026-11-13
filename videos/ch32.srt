@@ -1,0 +1,339 @@
+1
+00:00:00,600 --> 00:00:03,741
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,741 --> 00:00:07,149
+This is chapter thirty-two: structured concurrency.
+
+3
+00:00:07,599 --> 00:00:12,390
+It does for concurrent tasks what blocks and braces did for goto.
+
+4
+00:00:12,390 --> 00:00:16,887
+A scope can't be exited while its subtasks are still running.
+
+5
+00:00:16,887 --> 00:00:24,110
+One warning first: this is still a preview API, and its shape changed between Java 21 and Java 25.
+
+6
+00:00:24,110 --> 00:00:29,786
+Check signatures against your JDK before copying any sample, including these.
+
+7
+00:00:30,686 --> 00:00:36,333
+Loading an order context needs three independent lookups, and all must succeed.
+
+8
+00:00:36,333 --> 00:00:41,694
+The usual approach submits three tasks to an executor and gets each result.
+
+9
+00:00:41,694 --> 00:00:42,695
+It looks fine.
+
+10
+00:00:42,695 --> 00:00:44,339
+Every line is a hazard.
+
+11
+00:00:44,789 --> 00:00:52,171
+If stock fails, pricing and profile keep running to completion, wasting their load on downstream services.
+
+12
+00:00:52,621 --> 00:00:56,013
+The executor is never shut down on the exception path.
+
+13
+00:00:56,463 --> 00:01:00,879
+Results are fetched in order, so a pricing failure is discovered last.
+
+14
+00:01:01,329 --> 00:01:06,299
+And at runtime, nothing records that these three threads belong to one request.
+
+15
+00:01:07,199 --> 00:01:09,629
+A scope is a block with a lifetime.
+
+16
+00:01:09,629 --> 00:01:11,850
+Open it in a try-with-resources.
+
+17
+00:01:12,300 --> 00:01:14,241
+Fork the subtasks inside it.
+
+18
+00:01:14,691 --> 00:01:18,041
+join waits until the scope's policy is satisfied.
+
+19
+00:01:18,491 --> 00:01:22,386
+And close is guaranteed, cancelling anything still running.
+
+20
+00:01:22,386 --> 00:01:26,875
+The opening brace starts concurrency, and the closing brace ends it.
+
+21
+00:01:27,325 --> 00:01:40,039
+Compared to executors and CompletableFuture, the lifetime is lexically scoped, siblings are cancelled automatically on failure, stack traces are complete, and the code reads sequentially.
+
+22
+00:01:40,939 --> 00:01:45,064
+Here's the loader, structured, using the Java 25 shape.
+
+23
+00:01:45,064 --> 00:01:49,938
+Open a scope with a joiner that requires all subtasks to succeed.
+
+24
+00:01:49,938 --> 00:01:51,438
+Fork three subtasks.
+
+25
+00:01:51,438 --> 00:01:56,463
+join returns when they all succeed, or throws on the first failure.
+
+26
+00:01:56,463 --> 00:01:58,113
+Then read the results.
+
+27
+00:01:58,563 --> 00:02:04,351
+If pricing fails at forty milliseconds, stock and profile are cancelled immediately.
+
+28
+00:02:04,351 --> 00:02:08,003
+The scope closes on every path, including exceptions.
+
+29
+00:02:08,003 --> 00:02:13,585
+The subtasks are virtual threads, and a thread dump groups them under this scope.
+
+30
+00:02:13,585 --> 00:02:15,928
+And it reads like sequential code.
+
+31
+00:02:16,828 --> 00:02:18,467
+The policy is a Joiner.
+
+32
+00:02:18,467 --> 00:02:24,593
+allSuccessfulOrThrow: everything must succeed, and the first failure cancels the rest.
+
+33
+00:02:25,043 --> 00:02:30,462
+anySuccessfulResultOrThrow: the first success wins, and the others are cancelled.
+
+34
+00:02:30,912 --> 00:02:36,949
+awaitAll: wait for every subtask without throwing, and inspect each outcome yourself.
+
+35
+00:02:37,399 --> 00:02:41,474
+And allUntil, with a predicate, for collecting partial results.
+
+36
+00:02:42,374 --> 00:02:44,654
+Take the fastest of three vendors.
+
+37
+00:02:44,654 --> 00:02:49,012
+Fork a quote request to each, and join returns the first success.
+
+38
+00:02:49,012 --> 00:02:51,425
+The losers are cancelled mid-flight.
+
+39
+00:02:51,425 --> 00:02:57,862
+With CompletableFuture dot anyOf, you'd get the first result, but the others would keep running.
+
+40
+00:02:58,312 --> 00:03:01,933
+And for required plus optional work, use awaitAll.
+
+41
+00:03:01,933 --> 00:03:04,757
+Join waits for both and throws nothing.
+
+42
+00:03:04,757 --> 00:03:13,373
+Then decide per subtask: a missing stock status is an error, but missing recommendations just degrade to an empty list.
+
+43
+00:03:14,273 --> 00:03:18,938
+The API changed, so know which version you're reading.
+
+44
+00:03:18,938 --> 00:03:23,603
+Java 21 constructed a subclass like ShutdownOnFailure.
+
+45
+00:03:23,603 --> 00:03:26,540
+Java 25 uses a static open method.
+
+46
+00:03:26,990 --> 00:03:35,161
+The policy moved from choosing a subclass to passing a Joiner, so common policies are values rather than types you extend.
+
+47
+00:03:35,611 --> 00:03:39,822
+In Java 21 you called join, then throwIfFailed.
+
+48
+00:03:39,822 --> 00:03:42,779
+In Java 25, join throws directly.
+
+49
+00:03:43,229 --> 00:03:48,292
+And ShutdownOnSuccess became anySuccessfulResultOrThrow.
+
+50
+00:03:48,292 --> 00:03:53,085
+Java 21 code using the old shape won't compile on 25.
+
+51
+00:03:53,535 --> 00:04:02,717
+As a preview feature, it needs enable-preview at compile and run time, and the class files only load on that exact JDK release.
+
+52
+00:04:02,717 --> 00:04:06,911
+That alone is a reason to keep it out of shared libraries.
+
+53
+00:04:07,811 --> 00:04:10,137
+The API enforces the structure.
+
+54
+00:04:10,137 --> 00:04:15,315
+Calling get before join throws, because the result may not exist yet.
+
+55
+00:04:15,315 --> 00:04:17,266
+Forking after join throws.
+
+56
+00:04:17,266 --> 00:04:20,568
+And only the owner thread can fork and join.
+
+57
+00:04:21,018 --> 00:04:22,595
+These aren't arbitrary.
+
+58
+00:04:22,595 --> 00:04:26,161
+Each one closes off a way the structure could break.
+
+59
+00:04:26,161 --> 00:04:33,498
+And scopes nest, so cancelling an outer scope cancels every inner scope, transitively, with no bookkeeping.
+
+60
+00:04:34,398 --> 00:04:40,176
+Each scope records its owner and its subtasks, so the runtime sees a real tree.
+
+61
+00:04:40,176 --> 00:04:48,734
+A JSON thread dump groups virtual threads by scope, giving you a call tree instead of ten thousand unrelated entries.
+
+62
+00:04:49,184 --> 00:04:51,224
+Cancellation is interruption.
+
+63
+00:04:51,224 --> 00:04:55,164
+So subtasks must respond to interruption for it to work.
+
+64
+00:04:55,164 --> 00:05:01,073
+One stuck in a non-interruptible native call won't stop, and close will wait for it.
+
+65
+00:05:01,073 --> 00:05:04,309
+Cooperative cancellation is still cooperative.
+
+66
+00:05:04,759 --> 00:05:07,418
+And scoped values flow into subtasks.
+
+67
+00:05:07,418 --> 00:05:14,171
+A binding made before opening the scope is inherited by every forked subtask, with no copying.
+
+68
+00:05:14,171 --> 00:05:15,895
+That's the next chapter.
+
+69
+00:05:16,795 --> 00:05:18,160
+Production rules.
+
+70
+00:05:18,160 --> 00:05:21,209
+Use scopes for request-scoped fan-out.
+
+71
+00:05:21,209 --> 00:05:28,833
+Use allSuccessfulOrThrow when every input is required, and awaitAll for required plus optional.
+
+72
+00:05:28,833 --> 00:05:31,080
+Keep subtasks interruptible.
+
+73
+00:05:31,080 --> 00:05:33,969
+And verify the API against your JDK.
+
+74
+00:05:34,419 --> 00:05:38,227
+Never use this preview API in shared libraries.
+
+75
+00:05:38,227 --> 00:05:41,468
+Never copy Java 21 samples onto Java 25.
+
+76
+00:05:41,468 --> 00:05:46,492
+Never call get before join, or pass a scope to another thread.
+
+77
+00:05:46,492 --> 00:05:52,893
+And never swallow interruption inside a subtask, or cancellation stops working.
+
+78
+00:05:53,793 --> 00:05:54,462
+To recap.
+
+79
+00:05:54,462 --> 00:06:00,105
+A scope is a block with a lifetime, so subtasks can't be orphaned or leaked.
+
+80
+00:06:00,105 --> 00:06:05,822
+A failure cancels the siblings, and join surfaces it where you can handle it.
+
+81
+00:06:05,822 --> 00:06:07,381
+Policies are Joiners.
+
+82
+00:06:07,381 --> 00:06:12,801
+And it's still a preview API, which changed shape between Java 21 and 25.
+
+83
+00:06:13,251 --> 00:06:15,659
+That's the last chapter in this batch.
+
+84
+00:06:15,659 --> 00:06:20,347
+The concurrency section finishes with chapter thirty-three, scoped values.
+
+85
+00:06:20,347 --> 00:06:21,614
+Thanks for watching.

@@ -1,0 +1,303 @@
+1
+00:00:00,600 --> 00:00:04,206
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,206 --> 00:00:08,963
+This is chapter thirty-three: scoped values, final in Java 25.
+
+3
+00:00:09,413 --> 00:00:18,894
+Every server needs to carry context, like a trace ID, a tenant, or the logged-in user, through layers that shouldn't take it as a parameter.
+
+4
+00:00:18,894 --> 00:00:21,873
+For twenty years the answer was ThreadLocal.
+
+5
+00:00:21,873 --> 00:00:26,885
+Virtual threads broke its assumptions, and ScopedValue is the replacement.
+
+6
+00:00:27,785 --> 00:00:30,410
+Here's the classic ThreadLocal pattern.
+
+7
+00:00:30,410 --> 00:00:35,593
+Set the request context, handle the request, and clear it in a finally block.
+
+8
+00:00:36,043 --> 00:00:38,386
+It has four compounding problems.
+
+9
+00:00:38,386 --> 00:00:40,232
+Its lifetime is unbounded.
+
+10
+00:00:40,232 --> 00:00:45,772
+It stays set until someone removes it, and any refactor can drop that finally.
+
+11
+00:00:45,772 --> 00:00:52,660
+And on a pooled thread, if remove is missed, the next request sees the previous tenant's context.
+
+12
+00:00:52,660 --> 00:00:56,779
+That's a correctness bug that is also a security incident.
+
+13
+00:00:57,229 --> 00:01:03,857
+Anyone can write to it, so context can be changed three layers down without the caller knowing.
+
+14
+00:01:03,857 --> 00:01:08,881
+And InheritableThreadLocal copies the whole map into every child thread.
+
+15
+00:01:08,881 --> 00:01:12,439
+Invisible at two hundred threads, not at a million.
+
+16
+00:01:13,339 --> 00:01:16,887
+A ScopedValue is bound for the duration of a block.
+
+17
+00:01:16,887 --> 00:01:21,408
+Create a static final key, then call where with a value, and run.
+
+18
+00:01:21,408 --> 00:01:27,599
+Everything that block calls can read it, and when the block returns, the binding is gone.
+
+19
+00:01:27,599 --> 00:01:29,617
+There's no set and no remove.
+
+20
+00:01:30,067 --> 00:01:35,538
+Compared to ThreadLocal: it's bound once per scope instead of mutable anywhere.
+
+21
+00:01:35,538 --> 00:01:38,031
+Its lifetime is the enclosing block.
+
+22
+00:01:38,031 --> 00:01:40,871
+Cleanup is automatic, even on exceptions.
+
+23
+00:01:40,871 --> 00:01:46,342
+And because the value can't change, child tasks share it instead of copying it.
+
+24
+00:01:46,342 --> 00:01:49,736
+That's what makes it viable at a million threads.
+
+25
+00:01:50,636 --> 00:01:53,181
+Here's request context in practice.
+
+26
+00:01:53,181 --> 00:01:57,325
+The handler binds the context and runs the order service.
+
+27
+00:01:57,325 --> 00:02:00,960
+Four layers down, the repository reads the tenant.
+
+28
+00:02:00,960 --> 00:02:06,849
+No finally, no remove, and nothing in between carries a parameter it doesn't use.
+
+29
+00:02:07,299 --> 00:02:09,647
+That's essentially the whole API.
+
+30
+00:02:09,647 --> 00:02:11,355
+where, then run or call.
+
+31
+00:02:11,355 --> 00:02:16,192
+get reads the value, and throws if it's unbound, so it's never null.
+
+32
+00:02:16,192 --> 00:02:20,603
+And isBound, orElse and orElseThrow for testing and fallbacks.
+
+33
+00:02:20,603 --> 00:02:22,595
+There's deliberately no set.
+
+34
+00:02:23,495 --> 00:02:26,189
+Rebinding shadows instead of mutating.
+
+35
+00:02:26,189 --> 00:02:33,207
+A nightly job binds a system context, then for each tenant binds a narrower one for that iteration.
+
+36
+00:02:33,207 --> 00:02:37,034
+When the inner run returns, the outer binding is back.
+
+37
+00:02:37,034 --> 00:02:41,287
+With ThreadLocal that's save, set, and restore in a finally.
+
+38
+00:02:41,737 --> 00:02:45,085
+And it's designed to fit structured concurrency.
+
+39
+00:02:45,085 --> 00:02:49,340
+Every subtask forked inside the scope reads the same binding.
+
+40
+00:02:49,340 --> 00:02:55,199
+Nothing is copied, because the value is immutable, so all three share one reference.
+
+41
+00:02:56,099 --> 00:03:00,979
+Migration is mechanical where a ThreadLocal is set once per request.
+
+42
+00:03:00,979 --> 00:03:04,568
+Set, try, finally, remove becomes where, then run.
+
+43
+00:03:05,018 --> 00:03:09,242
+get returning null becomes get throwing, or orElse with a default.
+
+44
+00:03:09,692 --> 00:03:11,911
+Checking for null becomes isBound.
+
+45
+00:03:12,361 --> 00:03:17,502
+And InheritableThreadLocal becomes automatic inheritance into subtasks.
+
+46
+00:03:17,952 --> 00:03:24,759
+What doesn't map is anything written more than once during a request, like a reusable per-thread buffer.
+
+47
+00:03:24,759 --> 00:03:29,864
+That's mutable per-thread state, which ScopedValue deliberately can't express.
+
+48
+00:03:29,864 --> 00:03:34,315
+And on virtual threads, a buffer per thread needs rethinking anyway.
+
+49
+00:03:35,215 --> 00:03:37,733
+Why does one leak and the other can't?
+
+50
+00:03:37,733 --> 00:03:42,240
+Each thread holds a ThreadLocalMap with weak keys and strong values.
+
+51
+00:03:42,240 --> 00:03:50,592
+When the ThreadLocal itself becomes unreachable, the key is collected but the value lingers until the map happens to clean up.
+
+52
+00:03:50,592 --> 00:03:53,309
+On an idle pooled thread, that's forever.
+
+53
+00:03:53,309 --> 00:03:58,148
+That's how one ThreadLocal pins a whole classloader after a hot redeploy.
+
+54
+00:03:58,598 --> 00:04:06,738
+A scoped binding is a small immutable node pushed when run is entered and popped when it exits, tied to that stack frame.
+
+55
+00:04:06,738 --> 00:04:10,708
+It can't outlive the frame, so there's nothing to clean up.
+
+56
+00:04:10,708 --> 00:04:14,811
+And reads are cached, approaching the cost of a field access.
+
+57
+00:04:15,261 --> 00:04:16,960
+It's final in Java 25.
+
+58
+00:04:16,960 --> 00:04:24,371
+Samples using callWhere, or a three-argument where, are from earlier previews and won't compile.
+
+59
+00:04:25,271 --> 00:04:26,579
+Production rules.
+
+60
+00:04:26,579 --> 00:04:30,196
+Use ScopedValue for request context on Java 25.
+
+61
+00:04:30,196 --> 00:04:34,967
+Keep keys static final, and values immutable, ideally records.
+
+62
+00:04:34,967 --> 00:04:37,814
+Use orElseThrow with a clear message.
+
+63
+00:04:37,814 --> 00:04:41,585
+Rebind to narrow the context, never to mutate it.
+
+64
+00:04:41,585 --> 00:04:44,663
+And pair it with structured concurrency.
+
+65
+00:04:45,113 --> 00:04:49,569
+Never use ThreadLocal for context without remove in a finally.
+
+66
+00:04:49,569 --> 00:04:53,306
+Never bind mutable objects, which defeats the point.
+
+67
+00:04:53,306 --> 00:04:56,900
+Avoid InheritableThreadLocal with virtual threads.
+
+68
+00:04:56,900 --> 00:05:00,494
+And never keep per-thread caches of large objects.
+
+69
+00:05:01,394 --> 00:05:02,033
+To recap.
+
+70
+00:05:02,033 --> 00:05:07,782
+A scoped value is bound for a block, then gone, so there's no remove and no leak.
+
+71
+00:05:07,782 --> 00:05:12,182
+It's immutable, so callees can't change what the caller bound.
+
+72
+00:05:12,182 --> 00:05:15,234
+Subtasks share the binding without copying.
+
+73
+00:05:15,234 --> 00:05:20,061
+And ThreadLocal remains only for genuinely mutable per-thread state.
+
+74
+00:05:20,511 --> 00:05:23,019
+That completes the concurrency section.
+
+75
+00:05:23,019 --> 00:05:28,227
+Next, the runtime section, starting with chapter thirty-four: garbage collection.
+
+76
+00:05:28,227 --> 00:05:29,513
+Thanks for watching.

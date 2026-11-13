@@ -1,0 +1,395 @@
+1
+00:00:00,600 --> 00:00:03,775
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,775 --> 00:00:06,680
+This is chapter thirteen: pattern matching.
+
+3
+00:00:07,130 --> 00:00:15,359
+It arrived in three instalments: instanceof patterns in Java 16, then switch patterns and record patterns in 21.
+
+4
+00:00:15,359 --> 00:00:20,355
+It only becomes compelling when all three combine with sealed types.
+
+5
+00:00:20,355 --> 00:00:26,159
+Then Java can dispatch on shape, destructure, and prove you handled every case.
+
+6
+00:00:27,059 --> 00:00:29,443
+Here's an event handler in Java 8.
+
+7
+00:00:29,443 --> 00:00:31,966
+Test the type, cast it, then use it.
+
+8
+00:00:31,966 --> 00:00:34,910
+The type is written twice in every branch.
+
+9
+00:00:35,360 --> 00:00:37,158
+Nothing checks completeness.
+
+10
+00:00:37,158 --> 00:00:41,909
+Add a fifth event type and this still compiles, then throws in production.
+
+11
+00:00:42,359 --> 00:00:46,370
+Getting at the event's fields needs a separate step after the cast.
+
+12
+00:00:46,820 --> 00:00:51,838
+And that else throw at the bottom is a confession that the compiler couldn't help.
+
+13
+00:00:51,838 --> 00:00:53,796
+Pattern matching fixes all four.
+
+14
+00:00:54,696 --> 00:00:57,111
+A pattern is a test plus a binding.
+
+15
+00:00:57,111 --> 00:01:01,873
+It asks, does this value have this shape, and if so, names the parts.
+
+16
+00:01:01,873 --> 00:01:04,979
+A type pattern binds the value with its type.
+
+17
+00:01:05,429 --> 00:01:09,887
+A record pattern goes further and binds the record's components directly.
+
+18
+00:01:10,337 --> 00:01:17,484
+And patterns nest, so you can bind the components of components, using underscore for parts you don't need.
+
+19
+00:01:17,934 --> 00:01:19,651
+Remember the two pillars.
+
+20
+00:01:19,651 --> 00:01:22,193
+Sealed types give you exhaustiveness.
+
+21
+00:01:22,193 --> 00:01:24,323
+Records give you destructuring.
+
+22
+00:01:24,323 --> 00:01:28,857
+Without sealed types, pattern matching is just a nicer instanceof.
+
+23
+00:01:29,757 --> 00:01:32,245
+Here's the same handler in Java 21.
+
+24
+00:01:32,245 --> 00:01:39,922
+The events are a sealed interface of records, and each case destructures its record directly into variables.
+
+25
+00:01:39,922 --> 00:01:48,381
+The guard, when retry, handles the retryable failures, at the same level as every other branch, instead of a nested if.
+
+26
+00:01:48,831 --> 00:01:51,584
+No casts, no else throw, and no default.
+
+27
+00:01:51,584 --> 00:01:54,543
+The compiler proves the switch is complete.
+
+28
+00:01:54,543 --> 00:02:01,012
+Add a fifth event type and this method stops compiling, along with every other switch over it.
+
+29
+00:02:01,912 --> 00:02:08,800
+Cases are tested in order, so guarded patterns come before the unguarded pattern for the same type.
+
+30
+00:02:08,800 --> 00:02:15,340
+And when one label lists several patterns, you can't name bindings, since only one will match.
+
+31
+00:02:15,340 --> 00:02:17,357
+Use underscore, from Java 22.
+
+32
+00:02:17,807 --> 00:02:25,048
+Get the order wrong and the compiler rejects it: this case label is dominated by a preceding case label.
+
+33
+00:02:25,048 --> 00:02:30,269
+In an if-else chain, that unreachable branch would just silently never run.
+
+34
+00:02:30,269 --> 00:02:32,079
+Here it's a compile error.
+
+35
+00:02:32,979 --> 00:02:33,965
+Patterns nest.
+
+36
+00:02:33,965 --> 00:02:36,712
+Here, a payment result contains a card.
+
+37
+00:02:36,712 --> 00:02:44,670
+The first case matches only approved payments on a Visa card, and binds the last four digits, all in one pattern.
+
+38
+00:02:44,670 --> 00:02:49,811
+The last case uses underscore for the card network it doesn't care about.
+
+39
+00:02:50,261 --> 00:02:52,765
+That's powerful, but keep it shallow.
+
+40
+00:02:52,765 --> 00:02:57,365
+Past about two levels of nesting, a pattern becomes write-only code.
+
+41
+00:02:58,265 --> 00:03:02,199
+In everyday code, the instanceof pattern is the big win.
+
+42
+00:03:02,199 --> 00:03:10,489
+An equals method becomes one line, with no separate cast and no null check, because null never matches a type pattern.
+
+43
+00:03:10,939 --> 00:03:14,779
+The binding follows flow scoping, not normal block scoping.
+
+44
+00:03:14,779 --> 00:03:19,073
+It's in scope wherever the compiler can prove the pattern matched.
+
+45
+00:03:19,073 --> 00:03:24,735
+So with a negated test and an early throw, cart is in scope for the rest of the method.
+
+46
+00:03:24,735 --> 00:03:26,882
+That makes guard clauses natural.
+
+47
+00:03:26,882 --> 00:03:34,235
+But with an or, the right side runs when the pattern didn't match, so using the binding there is a compile error.
+
+48
+00:03:35,135 --> 00:03:37,485
+Null handling is always explicit.
+
+49
+00:03:37,485 --> 00:03:41,471
+instanceof with a pattern simply returns false for null.
+
+50
+00:03:41,921 --> 00:03:48,385
+A pattern switch with no case null throws a NullPointerException, just like the old switch did.
+
+51
+00:03:48,835 --> 00:03:51,651
+Write case null to handle it in its own branch.
+
+52
+00:03:52,101 --> 00:03:56,073
+Or case null comma default to treat it like anything else.
+
+53
+00:03:56,073 --> 00:03:57,717
+Either way, you decided.
+
+54
+00:03:57,717 --> 00:03:58,949
+Nothing is silent.
+
+55
+00:03:59,849 --> 00:04:02,455
+Pattern matching isn't always the answer.
+
+56
+00:04:02,455 --> 00:04:12,116
+If every branch does the same kind of thing with each type's own data, like computing a fee, that's a dispatch table for behaviour the types should own.
+
+57
+00:04:12,566 --> 00:04:15,138
+An interface method is better there.
+
+58
+00:04:15,138 --> 00:04:18,710
+New pricing rules need no change to existing code.
+
+59
+00:04:19,160 --> 00:04:21,961
+This is the classic expression problem.
+
+60
+00:04:21,961 --> 00:04:24,906
+Polymorphism makes adding new types easy.
+
+61
+00:04:24,906 --> 00:04:32,807
+Pattern matching makes adding new operations easy, like rendering, serialising or reporting over a closed set.
+
+62
+00:04:32,807 --> 00:04:36,973
+Choose based on which one actually changes in your domain.
+
+63
+00:04:37,873 --> 00:04:42,629
+Under the hood, a pattern switch compiles to an invokedynamic call.
+
+64
+00:04:42,629 --> 00:04:46,818
+A bootstrap builds an efficient matcher once and caches it.
+
+65
+00:04:46,818 --> 00:04:50,012
+It's not a linear chain of instanceof checks.
+
+66
+00:04:50,462 --> 00:04:54,063
+Record patterns bind by calling the accessor methods.
+
+67
+00:04:54,063 --> 00:04:57,731
+So an accessor with side effects runs during matching.
+
+68
+00:04:57,731 --> 00:04:59,294
+Keep accessors trivial.
+
+69
+00:04:59,744 --> 00:05:04,719
+And the compiler still adds a hidden default that throws a MatchException.
+
+70
+00:05:04,719 --> 00:05:12,920
+If a library adds a new subtype and your switch isn't recompiled, you get a loud failure instead of a silent wrong answer.
+
+71
+00:05:12,920 --> 00:05:18,432
+That's why sealing a public library type makes adding a subtype a breaking change.
+
+72
+00:05:19,332 --> 00:05:20,550
+Production rules.
+
+73
+00:05:20,550 --> 00:05:25,852
+Use instanceof patterns in equals, and the negated form for guard clauses.
+
+74
+00:05:25,852 --> 00:05:28,431
+Pair sealed interfaces with records.
+
+75
+00:05:28,431 --> 00:05:31,082
+Leave default out of sealed switches.
+
+76
+00:05:31,082 --> 00:05:32,801
+Put guarded cases first.
+
+77
+00:05:32,801 --> 00:05:37,028
+Use var in record patterns and underscore for unused parts.
+
+78
+00:05:37,028 --> 00:05:40,324
+And write case null wherever null is possible.
+
+79
+00:05:40,774 --> 00:05:44,256
+Never use pattern matching where polymorphism fits.
+
+80
+00:05:44,256 --> 00:05:47,464
+Never add default to a switch you want checked.
+
+81
+00:05:47,464 --> 00:05:50,058
+Don't nest more than about two levels.
+
+82
+00:05:50,058 --> 00:05:52,448
+Keep side effects out of accessors.
+
+83
+00:05:52,448 --> 00:05:55,383
+Don't assume a pattern switch handles null.
+
+84
+00:05:55,383 --> 00:05:58,523
+And don't seal a public library type casually.
+
+85
+00:05:59,423 --> 00:06:04,117
+Java 16 finalised instanceof patterns, along with records.
+
+86
+00:06:04,567 --> 00:06:07,489
+Java 17 finalised sealed classes.
+
+87
+00:06:07,939 --> 00:06:13,891
+Java 21 delivered the complete feature: pattern matching for switch, and record patterns.
+
+88
+00:06:14,341 --> 00:06:19,355
+Java 22 added the underscore for unnamed variables and patterns.
+
+89
+00:06:19,805 --> 00:06:24,841
+And patterns over primitive types, like case int i, are still in preview.
+
+90
+00:06:24,841 --> 00:06:27,600
+They need enable-preview and may change.
+
+91
+00:06:27,600 --> 00:06:30,429
+Everything else in this chapter is final.
+
+92
+00:06:31,329 --> 00:06:31,936
+To recap.
+
+93
+00:06:31,936 --> 00:06:34,300
+A pattern is a test plus a binding.
+
+94
+00:06:34,300 --> 00:06:40,378
+With sealed types and records, you get exhaustive switches that destructure as they match.
+
+95
+00:06:40,378 --> 00:06:45,579
+Put guarded cases first, and the compiler will reject any that are dominated.
+
+96
+00:06:45,579 --> 00:06:50,104
+Bindings follow flow scoping, and null handling is always explicit.
+
+97
+00:06:50,104 --> 00:06:55,777
+And use polymorphism when the types change, pattern matching when the operations do.
+
+98
+00:06:56,227 --> 00:07:01,529
+Next is chapter fourteen, the language features of Java 21 to 26.
+
+99
+00:07:01,529 --> 00:07:03,160
+Thanks for watching.

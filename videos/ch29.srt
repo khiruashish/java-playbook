@@ -1,0 +1,347 @@
+1
+00:00:00,600 --> 00:00:03,821
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,821 --> 00:00:07,043
+This is chapter twenty-nine: CompletableFuture.
+
+3
+00:00:07,493 --> 00:00:10,456
+The Java 5 Future could only be waited on.
+
+4
+00:00:10,456 --> 00:00:19,418
+CompletableFuture makes combining, falling back and timing out operations on the future itself, with no thread blocked waiting.
+
+5
+00:00:20,318 --> 00:00:24,077
+With a plain Future, you can only call get, which blocks.
+
+6
+00:00:24,077 --> 00:00:33,310
+There's no way to say, when both are done, combine them, or if this fails, use a fallback, without blocking a thread and writing it by hand.
+
+7
+00:00:33,760 --> 00:00:37,286
+CompletableFuture makes each of those an operation.
+
+8
+00:00:37,286 --> 00:00:46,065
+Run stock and pricing lookups, combine them into an order context, time out after two seconds, and fall back if anything fails.
+
+9
+00:00:46,065 --> 00:00:48,139
+No thread waits for any of it.
+
+10
+00:00:49,039 --> 00:00:57,026
+A CompletableFuture is a container that's completed exactly once: with a value, an exception, or cancellation.
+
+11
+00:00:57,026 --> 00:01:00,367
+Stages registered on it run when it completes.
+
+12
+00:01:00,817 --> 00:01:09,649
+Each method returns a new future for that stage, so a chain is really a dependency graph, with each stage triggered by its inputs.
+
+13
+00:01:10,099 --> 00:01:11,889
+The naming has a grammar.
+
+14
+00:01:11,889 --> 00:01:14,826
+thenApply transforms the value, like map.
+
+15
+00:01:14,826 --> 00:01:19,554
+thenCompose is for a function that returns a future, like flatMap.
+
+16
+00:01:19,554 --> 00:01:21,703
+thenCombine joins two futures.
+
+17
+00:01:21,703 --> 00:01:28,507
+And every stage has an Async variant, optionally with an executor, which decides where it runs.
+
+18
+00:01:28,507 --> 00:01:30,728
+That turns out to matter a lot.
+
+19
+00:01:31,628 --> 00:01:33,492
+Here's the standard fan-out.
+
+20
+00:01:33,492 --> 00:01:35,623
+Start three lookups in parallel.
+
+21
+00:01:35,623 --> 00:01:42,216
+allOf completes when they all do, but it carries no values, so read them from the original futures.
+
+22
+00:01:42,216 --> 00:01:47,543
+Calling join there doesn't block, because allOf already guaranteed they're done.
+
+23
+00:01:47,993 --> 00:01:49,677
+And the classic mistake.
+
+24
+00:01:49,677 --> 00:01:55,504
+If the function already returns a future, thenApply gives you a future of a future.
+
+25
+00:01:55,504 --> 00:01:57,610
+Use thenCompose to flatten it.
+
+26
+00:01:57,610 --> 00:02:02,734
+A nested CompletableFuture in a signature is always a missed thenCompose.
+
+27
+00:02:03,634 --> 00:02:05,498
+Exceptions arrive wrapped.
+
+28
+00:02:05,498 --> 00:02:12,453
+Throw a VendorUnavailableException inside a stage, and the next stage sees a CompletionException.
+
+29
+00:02:12,453 --> 00:02:16,611
+So code that matches on the exception type silently fails.
+
+30
+00:02:16,611 --> 00:02:19,622
+Always unwrap the cause first, then match.
+
+31
+00:02:19,622 --> 00:02:21,917
+join and get wrap the cause too.
+
+32
+00:02:22,367 --> 00:02:24,665
+And know the three error methods.
+
+33
+00:02:24,665 --> 00:02:28,912
+exceptionally runs only on failure and returns a replacement.
+
+34
+00:02:28,912 --> 00:02:33,926
+handle always runs, sees both value and exception, and returns a result.
+
+35
+00:02:33,926 --> 00:02:37,269
+whenComplete always runs too, but only observes.
+
+36
+00:02:37,269 --> 00:02:42,213
+It can't change the outcome, so a failure keeps flowing down the chain.
+
+37
+00:02:42,213 --> 00:02:44,511
+Use it for metrics, not recovery.
+
+38
+00:02:45,411 --> 00:02:46,093
+Timeouts.
+
+39
+00:02:46,093 --> 00:02:49,503
+orTimeout fails the future after two seconds.
+
+40
+00:02:49,503 --> 00:02:53,065
+completeOnTimeout uses a default value instead.
+
+41
+00:02:53,065 --> 00:02:59,811
+And anyOf returns whichever vendor answers first, typed as Object, so you'll need a cast.
+
+42
+00:03:00,261 --> 00:03:01,665
+But here's the catch.
+
+43
+00:03:01,665 --> 00:03:03,871
+All of these complete the future.
+
+44
+00:03:03,871 --> 00:03:05,676
+None of them stop the work.
+
+45
+00:03:05,676 --> 00:03:12,696
+A timed-out call keeps running, using its thread and the downstream's capacity, and so do anyOf's losers.
+
+46
+00:03:12,696 --> 00:03:20,451
+Even cancel ignores its interrupt flag, because a CompletableFuture has no reference to the thread running its task.
+
+47
+00:03:20,451 --> 00:03:24,730
+Structured concurrency, in chapter thirty-two, actually cancels.
+
+48
+00:03:25,630 --> 00:03:27,410
+Which thread runs a stage?
+
+49
+00:03:27,410 --> 00:03:29,807
+This is what most people get wrong.
+
+50
+00:03:29,807 --> 00:03:35,763
+A non-async stage on an already-complete future runs right away, on the calling thread.
+
+51
+00:03:36,213 --> 00:03:41,635
+If the future isn't complete yet, it runs on whichever thread completes it.
+
+52
+00:03:41,635 --> 00:03:47,563
+If that's an HTTP client's callback thread, your slow stage now blocks the client.
+
+53
+00:03:48,013 --> 00:03:52,919
+The Async variant without an executor runs on the common ForkJoinPool.
+
+54
+00:03:53,369 --> 00:03:57,141
+And with an executor, it runs exactly where you choose.
+
+55
+00:03:57,141 --> 00:04:00,089
+For anything non-trivial, pass an executor.
+
+56
+00:04:00,989 --> 00:04:05,552
+Without an executor argument, supplyAsync runs on the common pool.
+
+57
+00:04:05,552 --> 00:04:12,050
+It's shared by the whole JVM, including parallel streams, and has roughly one thread per core.
+
+58
+00:04:12,050 --> 00:04:15,161
+Blocking I/O there ties up those few threads.
+
+59
+00:04:15,161 --> 00:04:20,553
+Enough concurrent calls exhaust the pool, and everything else using it stalls.
+
+60
+00:04:20,553 --> 00:04:24,148
+So always pass an executor for anything that blocks.
+
+61
+00:04:24,148 --> 00:04:28,296
+On Java 21, a virtual-thread executor is the natural choice.
+
+62
+00:04:28,746 --> 00:04:35,097
+And one place CompletableFuture remains the clearest tool: adapting a callback-based SDK.
+
+63
+00:04:35,097 --> 00:04:41,162
+Create an incomplete future, then complete it from the success and failure callbacks.
+
+64
+00:04:42,062 --> 00:04:47,705
+Compare the same fan-out with structured concurrency, which is still a preview feature.
+
+65
+00:04:47,705 --> 00:04:51,726
+Open a scope, fork three subtasks, join, and read the results.
+
+66
+00:04:52,176 --> 00:04:56,030
+It reads like sequential code, with useful stack traces.
+
+67
+00:04:56,030 --> 00:04:59,403
+If one subtask fails, the siblings are cancelled.
+
+68
+00:04:59,403 --> 00:05:03,602
+Those are exactly the things CompletableFuture is weakest at.
+
+69
+00:05:03,602 --> 00:05:10,416
+The trade-off is that it blocks the calling thread, which on a virtual thread costs almost nothing.
+
+70
+00:05:11,316 --> 00:05:12,579
+Production rules.
+
+71
+00:05:12,579 --> 00:05:15,700
+Always pass an executor for blocking work.
+
+72
+00:05:15,700 --> 00:05:19,489
+Use thenCompose when the function returns a future.
+
+73
+00:05:19,489 --> 00:05:22,684
+Unwrap CompletionException before matching.
+
+74
+00:05:22,684 --> 00:05:24,838
+Put timeouts on remote calls.
+
+75
+00:05:24,838 --> 00:05:28,553
+And use CompletableFuture to bridge callback APIs.
+
+76
+00:05:29,003 --> 00:05:32,083
+Never run blocking I/O on the common pool.
+
+77
+00:05:32,083 --> 00:05:36,777
+Never expect cancel to interrupt, or a timeout to stop the work.
+
+78
+00:05:36,777 --> 00:05:39,637
+Never try to recover with whenComplete.
+
+79
+00:05:39,637 --> 00:05:45,430
+And never put slow non-async stages where they'll run on someone else's thread.
+
+80
+00:05:46,330 --> 00:05:46,985
+To recap.
+
+81
+00:05:46,985 --> 00:05:51,423
+CompletableFuture composes async work with no thread waiting.
+
+82
+00:05:51,423 --> 00:05:54,697
+thenApply is map, and thenCompose is flatMap.
+
+83
+00:05:54,697 --> 00:05:57,753
+Exceptions arrive wrapped, so unwrap them.
+
+84
+00:05:57,753 --> 00:06:01,463
+Timeouts and cancel don't stop the underlying work.
+
+85
+00:06:01,463 --> 00:06:05,829
+And always pass an executor, never blocking the common pool.
+
+86
+00:06:06,279 --> 00:06:09,272
+Next is chapter thirty: concurrent collections.
+
+87
+00:06:09,272 --> 00:06:10,545
+Thanks for watching.

@@ -1,0 +1,355 @@
+1
+00:00:00,600 --> 00:00:03,854
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,854 --> 00:00:08,216
+This is chapter twenty-two: immutability and defensive copying.
+
+3
+00:00:08,666 --> 00:00:12,451
+Immutability removes whole categories of bugs at once.
+
+4
+00:00:12,451 --> 00:00:19,319
+Nothing can corrupt the object, no thread can see it half-updated, and its invariants can't drift.
+
+5
+00:00:19,319 --> 00:00:21,421
+The cost is mostly discipline.
+
+6
+00:00:21,421 --> 00:00:23,594
+And that's where it goes wrong.
+
+7
+00:00:23,594 --> 00:00:28,079
+Most supposedly immutable classes in real codebases have a hole.
+
+8
+00:00:28,979 --> 00:00:31,061
+Here's an order that looks safe.
+
+9
+00:00:31,061 --> 00:00:33,599
+The class is final, the field is final.
+
+10
+00:00:33,599 --> 00:00:39,454
+But the constructor stores the caller's list, and the accessor hands it straight back out.
+
+11
+00:00:39,904 --> 00:00:44,150
+So there are three ways to change it without touching the class.
+
+12
+00:00:44,150 --> 00:00:47,135
+The caller still holds the list it passed in.
+
+13
+00:00:47,135 --> 00:00:49,722
+The accessor exposes the internal list.
+
+14
+00:00:49,722 --> 00:00:52,508
+And the line items themselves are mutable.
+
+15
+00:00:52,508 --> 00:00:55,294
+final stops you reassigning the reference.
+
+16
+00:00:55,294 --> 00:00:58,677
+It does nothing about what the reference points to.
+
+17
+00:00:59,577 --> 00:01:02,982
+There are four different things people call immutable.
+
+18
+00:01:02,982 --> 00:01:08,025
+A final field: you can still modify the list through it, and so can anyone else.
+
+19
+00:01:08,475 --> 00:01:14,769
+An unmodifiable view: you can't modify it, but the owner can, and you'll see those changes.
+
+20
+00:01:15,219 --> 00:01:21,320
+List dot copyOf: a real snapshot, but if the elements are mutable, they can still change.
+
+21
+00:01:21,770 --> 00:01:27,208
+Only a copied list of immutable elements, like records, is actually immutable.
+
+22
+00:01:27,208 --> 00:01:30,346
+The rest are useful, but each one has a hole.
+
+23
+00:01:31,246 --> 00:01:32,459
+Here's the recipe.
+
+24
+00:01:32,459 --> 00:01:37,646
+Make the class final, or use a record, so a subclass can't add mutable state.
+
+25
+00:01:38,096 --> 00:01:40,635
+Private final fields, and no setters.
+
+26
+00:01:41,085 --> 00:01:47,101
+Copy every mutable input inside the constructor, so the caller can't keep a handle on your state.
+
+27
+00:01:47,551 --> 00:01:52,351
+Store immutable types, so your accessors don't need to copy on the way out.
+
+28
+00:01:52,801 --> 00:01:56,342
+And make sure the components are immutable all the way down.
+
+29
+00:01:57,242 --> 00:01:58,917
+Here's the order fixed.
+
+30
+00:01:58,917 --> 00:01:59,937
+It's a record.
+
+31
+00:01:59,937 --> 00:02:07,511
+The compact constructor validates, then copies the lines with List dot copyOf, which also rejects nulls.
+
+32
+00:02:07,511 --> 00:02:10,789
+And OrderLine is a record of immutable parts.
+
+33
+00:02:11,239 --> 00:02:13,964
+All three mutations are now impossible.
+
+34
+00:02:13,964 --> 00:02:19,695
+And no copy is needed in the accessor, because what's stored is already immutable.
+
+35
+00:02:19,695 --> 00:02:25,425
+Copy on the way in, store an immutable type, and the way out takes care of itself.
+
+36
+00:02:25,875 --> 00:02:32,658
+Better still, List dot copyOf doesn't copy if its argument is already an immutable JDK list.
+
+37
+00:02:32,658 --> 00:02:34,059
+It just returns it.
+
+38
+00:02:34,059 --> 00:02:41,136
+So in a codebase that uses records and List dot of throughout, defensive copying is nearly free.
+
+39
+00:02:41,136 --> 00:02:46,739
+It does copy an unmodifiable view, correctly, since a view can still change.
+
+40
+00:02:47,639 --> 00:02:49,745
+Records don't help with arrays.
+
+41
+00:02:49,745 --> 00:02:56,875
+A byte array component can be changed by the caller who passed it in, and by anyone calling the accessor.
+
+42
+00:02:56,875 --> 00:03:08,759
+So you'd have to clone on the way in, clone on the way out by overriding the accessor, and override equals and hashCode, because the generated ones compare arrays by identity.
+
+43
+00:03:09,209 --> 00:03:14,264
+Records are only shallowly immutable, and arrays are never immutable.
+
+44
+00:03:14,264 --> 00:03:19,172
+Usually the better answer is a list, or a dedicated immutable type.
+
+45
+00:03:20,072 --> 00:03:23,692
+You change an immutable object by making a new one.
+
+46
+00:03:23,692 --> 00:03:29,796
+A wither, like withQuantity, returns a new CartLine and leaves the original untouched.
+
+47
+00:03:29,796 --> 00:03:35,475
+And since the compact constructor runs every time, validation can't be bypassed.
+
+48
+00:03:35,925 --> 00:03:42,085
+When there are many optional parts, positional construction gets unreadable, so use a builder.
+
+49
+00:03:42,085 --> 00:03:44,904
+The builder is mutable and single-threaded.
+
+50
+00:03:44,904 --> 00:03:47,722
+The product is immutable and safe to share.
+
+51
+00:03:47,722 --> 00:03:54,079
+The record's constructor still validates and copies, so the builder can't produce a leaky object.
+
+52
+00:03:54,979 --> 00:03:56,546
+Here's the big payoff.
+
+53
+00:03:56,546 --> 00:04:06,874
+Under the Java Memory Model, an object with all-final fields, properly constructed, can be shared between threads with no synchronisation at all.
+
+54
+00:04:06,874 --> 00:04:08,441
+No locks, no volatile.
+
+55
+00:04:08,891 --> 00:04:09,857
+Two conditions.
+
+56
+00:04:09,857 --> 00:04:13,593
+The reference to this must not escape during construction.
+
+57
+00:04:13,593 --> 00:04:22,032
+And the guarantee covers the state as of the end of the constructor, which is exactly why the defensive copy must happen inside it.
+
+58
+00:04:22,482 --> 00:04:25,710
+And immutable isn't necessarily more expensive.
+
+59
+00:04:25,710 --> 00:04:31,821
+List dot of with two elements is a single small object with two fields, no backing array.
+
+60
+00:04:31,821 --> 00:04:34,087
+That's smaller than an ArrayList.
+
+61
+00:04:34,987 --> 00:04:36,128
+What does it cost?
+
+62
+00:04:36,128 --> 00:04:39,169
+Copying an already-immutable list costs nothing.
+
+63
+00:04:39,619 --> 00:04:42,477
+A wither is one small, short-lived allocation.
+
+64
+00:04:42,927 --> 00:04:48,603
+The real cost is appending to a huge immutable collection, which copies everything.
+
+65
+00:04:48,603 --> 00:04:51,476
+For a million elements that's prohibitive.
+
+66
+00:04:51,476 --> 00:04:55,647
+Most domain objects have tens of items, so it doesn't matter.
+
+67
+00:04:55,647 --> 00:05:02,554
+For large, frequently-updated collections, use a mutable builder, or a persistent collection library.
+
+68
+00:05:03,004 --> 00:05:05,397
+And remember the inheritance hole.
+
+69
+00:05:05,397 --> 00:05:11,660
+If the class isn't final, a subclass can override an accessor and return changing values.
+
+70
+00:05:11,660 --> 00:05:16,657
+That's why records, which are implicitly final, are the safest default.
+
+71
+00:05:17,557 --> 00:05:18,819
+Production rules.
+
+72
+00:05:18,819 --> 00:05:23,865
+Default to records, with List dot copyOf in the compact constructor.
+
+73
+00:05:23,865 --> 00:05:26,463
+Copy inputs inside the constructor.
+
+74
+00:05:26,463 --> 00:05:28,096
+Store immutable types.
+
+75
+00:05:28,096 --> 00:05:32,029
+Use withers for change and builders for many options.
+
+76
+00:05:32,029 --> 00:05:34,404
+Replace Date with java dot time.
+
+77
+00:05:34,404 --> 00:05:36,779
+And return snapshots, not views.
+
+78
+00:05:37,229 --> 00:05:39,749
+Never assume final means immutable.
+
+79
+00:05:39,749 --> 00:05:46,518
+Never return a mutable internal collection, or store a caller's collection without copying it.
+
+80
+00:05:46,518 --> 00:05:50,478
+Never put arrays in a record without copying both ways.
+
+81
+00:05:50,478 --> 00:05:53,575
+Never treat unmodifiableList as a snapshot.
+
+82
+00:05:53,575 --> 00:05:56,599
+And never let this escape the constructor.
+
+83
+00:05:57,499 --> 00:05:58,139
+To recap.
+
+84
+00:05:58,139 --> 00:06:01,122
+final fixes the reference, not the object.
+
+85
+00:06:01,122 --> 00:06:07,017
+Copy on the way in and store immutable types, and the way out takes care of itself.
+
+86
+00:06:07,017 --> 00:06:11,279
+List dot copyOf is free when its input is already immutable.
+
+87
+00:06:11,279 --> 00:06:15,825
+And properly constructed immutable objects need no locks at all.
+
+88
+00:06:16,275 --> 00:06:20,566
+Next is chapter twenty-three: equals, hashCode and comparators.
+
+89
+00:06:20,566 --> 00:06:21,928
+Thanks for watching.

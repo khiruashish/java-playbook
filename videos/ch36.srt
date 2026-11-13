@@ -1,0 +1,339 @@
+1
+00:00:00,600 --> 00:00:03,883
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,883 --> 00:00:07,725
+This is chapter thirty-six: startup and Project Leyden.
+
+3
+00:00:08,175 --> 00:00:12,384
+Java's slow start was fine when a JVM ran for months.
+
+4
+00:00:12,384 --> 00:00:21,039
+It stopped being fine when JVMs started launching per autoscaling event, per CI job, and per serverless call.
+
+5
+00:00:21,939 --> 00:00:25,425
+There are two separate numbers that get conflated.
+
+6
+00:00:25,425 --> 00:00:29,329
+Startup: three point three seconds to the first request.
+
+7
+00:00:29,329 --> 00:00:35,742
+Warmup: another thirty-five seconds to peak throughput, while the JIT profiles and compiles.
+
+8
+00:00:36,192 --> 00:00:39,165
+Which one hurts depends on how you deploy.
+
+9
+00:00:39,165 --> 00:00:42,139
+A long-running service with rare restarts?
+
+10
+00:00:42,139 --> 00:00:42,705
+Neither.
+
+11
+00:00:42,705 --> 00:00:43,979
+Skip this chapter.
+
+12
+00:00:43,979 --> 00:00:45,749
+Autoscaling under bursts?
+
+13
+00:00:45,749 --> 00:00:50,280
+Both, because new instances are slow exactly when you need them.
+
+14
+00:00:50,280 --> 00:00:52,758
+Serverless is dominated by startup.
+
+15
+00:00:52,758 --> 00:00:58,421
+And a thirty-second batch job never finishes warming up, so it runs interpreted.
+
+16
+00:00:59,321 --> 00:01:02,152
+Each mitigation targets a different phase.
+
+17
+00:01:02,152 --> 00:01:09,497
+Class loading and verification, reading and checking thousands of classes, is attacked by class data sharing.
+
+18
+00:01:09,947 --> 00:01:15,387
+Linking and initialisation is attacked by the AOT cache from Project Leyden.
+
+19
+00:01:15,837 --> 00:01:21,875
+The slow climb from interpreter to compiled code is attacked by recorded method profiles.
+
+20
+00:01:22,325 --> 00:01:27,253
+And native image and CRaC attack all of it, in very different ways.
+
+21
+00:01:27,703 --> 00:01:34,714
+The key asymmetry: CDS and the AOT cache change nothing about how your application behaves.
+
+22
+00:01:34,714 --> 00:01:38,412
+Native image changes the execution model itself.
+
+23
+00:01:39,312 --> 00:01:43,060
+Before choosing anything, measure which phase dominates.
+
+24
+00:01:43,060 --> 00:01:47,611
+Here, loading classes is over two seconds of a three-second startup.
+
+25
+00:01:48,061 --> 00:01:53,024
+If class loading dominates, CDS and the AOT cache are the answer.
+
+26
+00:01:53,024 --> 00:02:03,409
+If application initialisation dominates, like building caches, scanning the classpath or opening connection pools, no JVM feature helps.
+
+27
+00:02:03,409 --> 00:02:05,853
+The work is in your application.
+
+28
+00:02:06,753 --> 00:02:14,446
+Class data sharing stores classes pre-parsed and pre-verified, memory-mapped straight into the JVM.
+
+29
+00:02:14,446 --> 00:02:18,177
+JDK classes are shared by default since Java 12.
+
+30
+00:02:18,177 --> 00:02:28,513
+For your own classes, since Java 19, one flag creates the archive on first run, uses it after, and regenerates it if the jar changes.
+
+31
+00:02:28,963 --> 00:02:34,457
+In containers, build the archive at image build time so it ships in a layer.
+
+32
+00:02:34,457 --> 00:02:41,035
+It must be built on the same JDK version that uses it, so a base image bump invalidates it.
+
+33
+00:02:41,035 --> 00:02:44,216
+Another reason to build it inside the image.
+
+34
+00:02:45,116 --> 00:02:47,018
+The AOT cache goes further.
+
+35
+00:02:47,018 --> 00:02:51,668
+First, a training run records what was actually loaded and linked.
+
+36
+00:02:51,668 --> 00:03:00,898
+The training run is what matters: one that only starts and exits captures nothing about the request path, so run a real smoke test.
+
+37
+00:03:00,898 --> 00:03:02,588
+Second, build the cache.
+
+38
+00:03:02,588 --> 00:03:04,913
+Third, run with it in production.
+
+39
+00:03:05,363 --> 00:03:08,303
+Classes come pre-loaded and pre-linked.
+
+40
+00:03:08,303 --> 00:03:17,950
+And with Java 25's method profiling, the cache also carries JIT profile data, so the compiler can skip straight to higher tiers.
+
+41
+00:03:17,950 --> 00:03:20,814
+That attacks warmup, not just startup.
+
+42
+00:03:20,814 --> 00:03:28,275
+Any JDK, classpath or application change invalidates it, so build it in CI as part of the artifact.
+
+43
+00:03:29,175 --> 00:03:30,379
+The other options.
+
+44
+00:03:30,379 --> 00:03:34,191
+Native image starts in milliseconds and uses less memory.
+
+45
+00:03:34,191 --> 00:03:46,093
+But peak throughput is usually lower, builds take minutes, and it's a closed world: anything found at runtime, like reflection or dynamic proxies, must be declared at build time.
+
+46
+00:03:46,093 --> 00:03:52,045
+Choose it when startup is the product requirement, like serverless or command-line tools.
+
+47
+00:03:52,045 --> 00:03:55,522
+Not to save a few seconds on a long-running service.
+
+48
+00:03:55,972 --> 00:04:03,131
+CRaC, checkpoint and restore, snapshots a warmed-up JVM and restores it later, already at peak.
+
+49
+00:04:03,131 --> 00:04:07,352
+It's the only option that skips both startup and warmup.
+
+50
+00:04:07,352 --> 00:04:16,772
+The cost is coordination: open files, sockets and pools can't survive a snapshot, so you need hooks to close and reopen them.
+
+51
+00:04:17,222 --> 00:04:23,907
+And for a JVM that lives a few seconds, stop at the C1 compiler and use Serial GC.
+
+52
+00:04:23,907 --> 00:04:30,022
+Right for CLI tools and CI steps, clearly wrong for a long-running service.
+
+53
+00:04:30,922 --> 00:04:32,358
+So how do you decide?
+
+54
+00:04:32,358 --> 00:04:34,819
+First: does startup actually matter?
+
+55
+00:04:34,819 --> 00:04:38,307
+For a service restarted during a weekly deploy, no.
+
+56
+00:04:38,307 --> 00:04:39,059
+Do nothing.
+
+57
+00:04:39,059 --> 00:04:41,589
+That's the branch most often skipped.
+
+58
+00:04:42,039 --> 00:04:47,735
+For a cheap twenty to fifty percent improvement, use AppCDS and the AOT cache.
+
+59
+00:04:48,185 --> 00:04:52,622
+If startup in milliseconds is the product requirement, native image.
+
+60
+00:04:53,072 --> 00:04:56,955
+If you need milliseconds and full peak throughput, CRaC.
+
+61
+00:04:57,405 --> 00:05:01,458
+And for processes that live only seconds, stop at C1.
+
+62
+00:05:02,358 --> 00:05:03,396
+Two internals.
+
+63
+00:05:03,396 --> 00:05:16,377
+Class loading is slow mostly because of verification: proving each method's bytecode is type-safe is a real dataflow analysis, and with twelve thousand classes that's seconds.
+
+64
+00:05:16,377 --> 00:05:21,643
+CDS stores classes already verified, so loading becomes memory-mapping.
+
+65
+00:05:22,093 --> 00:05:25,576
+And why not just compile everything ahead of time?
+
+66
+00:05:25,576 --> 00:05:34,629
+Because C2's best optimisations depend on runtime profiles: which branch is taken, which implementation a call site actually sees.
+
+67
+00:05:34,629 --> 00:05:39,783
+Compile blind and you lose devirtualisation and the inlining that follows.
+
+68
+00:05:39,783 --> 00:05:48,419
+That's why native image trades peak throughput, and why recording real profiles, as Leyden does, is the more promising path.
+
+69
+00:05:49,319 --> 00:05:50,668
+Production rules.
+
+70
+00:05:50,668 --> 00:05:53,367
+First ask whether startup matters.
+
+71
+00:05:53,367 --> 00:05:56,066
+Measure with the startup time log.
+
+72
+00:05:56,066 --> 00:06:00,035
+Use AppCDS with auto-create, which is nearly free.
+
+73
+00:06:00,035 --> 00:06:06,068
+Build archives and AOT caches in CI or the image, never by hand on a server.
+
+74
+00:06:06,068 --> 00:06:09,799
+And train the AOT cache on a real request path.
+
+75
+00:06:10,249 --> 00:06:15,786
+Never move a long-running service to native image just to start faster.
+
+76
+00:06:15,786 --> 00:06:19,140
+Never reuse an archive across JDK versions.
+
+77
+00:06:19,140 --> 00:06:21,480
+Never stop at C1 on a service.
+
+78
+00:06:21,480 --> 00:06:27,251
+And don't tune JVM startup when your own initialisation is what dominates.
+
+79
+00:06:28,151 --> 00:06:28,794
+To recap.
+
+80
+00:06:28,794 --> 00:06:31,724
+Startup and warmup are different numbers.
+
+81
+00:06:31,724 --> 00:06:36,654
+CDS and the AOT cache make startup faster without changing behaviour.
+
+82
+00:06:36,654 --> 00:06:43,298
+Native image starts in milliseconds, at the cost of a closed world and lower peak throughput.
+
+83
+00:06:43,298 --> 00:06:47,799
+And CRaC skips both startup and warmup, with some coordination.
+
+84
+00:06:48,249 --> 00:06:52,638
+Next is chapter thirty-seven: profiling and Java Flight Recorder.
+
+85
+00:06:52,638 --> 00:06:53,988
+Thanks for watching.

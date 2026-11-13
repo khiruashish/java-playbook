@@ -1,0 +1,451 @@
+1
+00:00:00,600 --> 00:00:03,900
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,900 --> 00:00:07,341
+This is chapter nine: Optional and null strategy.
+
+3
+00:00:07,791 --> 00:00:10,431
+Optional was added to solve one problem.
+
+4
+00:00:10,431 --> 00:00:15,907
+A method that may have nothing to return should be able to say so in its signature.
+
+5
+00:00:15,907 --> 00:00:18,877
+It was not added to eliminate null from Java.
+
+6
+00:00:18,877 --> 00:00:27,653
+Treat it that way and you end up with Optional fields, Optional parameters and Optional lists, all worse than the null they replaced.
+
+7
+00:00:28,553 --> 00:00:34,807
+In Java 7, a catalogue lookup that might find nothing just returns an InventoryItem.
+
+8
+00:00:34,807 --> 00:00:38,828
+The signature is silent, so every caller has to guess.
+
+9
+00:00:38,828 --> 00:00:44,041
+And the null checks nest deeper at every level: item, vendor, address.
+
+10
+00:00:44,491 --> 00:00:49,025
+In Java 8, the return type says it: Optional of InventoryItem.
+
+11
+00:00:49,025 --> 00:00:51,657
+And the caller becomes a flat chain.
+
+12
+00:00:51,657 --> 00:00:56,850
+Map to the vendor, then the address, then the pincode, or else unknown.
+
+13
+00:00:56,850 --> 00:01:02,261
+A missing SKU, vendor or address all end up at unknown, with no branching.
+
+14
+00:01:03,161 --> 00:01:10,521
+Optional is a return type that says possibly nothing, plus a vocabulary for handling that without branching.
+
+15
+00:01:10,971 --> 00:01:15,345
+If a value is present, map, flatMap and filter transform it.
+
+16
+00:01:15,795 --> 00:01:21,327
+If it's empty, every operation just returns empty, without calling your function.
+
+17
+00:01:21,327 --> 00:01:25,288
+That's what collapses the nested ifs into a flat pipeline.
+
+18
+00:01:25,738 --> 00:01:31,253
+And at the end you must exit deliberately, with orElse, orElseGet or orElseThrow.
+
+19
+00:01:31,253 --> 00:01:33,091
+There's no implicit unwrap.
+
+20
+00:01:33,091 --> 00:01:37,109
+You choose what absence means, at the point where you know.
+
+21
+00:01:38,009 --> 00:01:39,746
+Where does Optional belong?
+
+22
+00:01:39,746 --> 00:01:40,775
+On return types.
+
+23
+00:01:40,775 --> 00:01:42,062
+That's the use case.
+
+24
+00:01:42,512 --> 00:01:45,867
+Not on fields: use null or a sensible default.
+
+25
+00:01:45,867 --> 00:01:48,275
+Not on parameters: use overloads.
+
+26
+00:01:48,275 --> 00:01:51,703
+Not inside collections: filter the empties out.
+
+27
+00:01:51,703 --> 00:01:57,319
+And never Optional of a list, because then there are two ways to say nothing.
+
+28
+00:01:57,319 --> 00:01:59,216
+Just return an empty list.
+
+29
+00:01:59,666 --> 00:02:02,081
+The JDK itself is the guide.
+
+30
+00:02:02,081 --> 00:02:09,499
+Optional appears as a return type on findFirst, min, max and reduce, and nowhere else.
+
+31
+00:02:09,499 --> 00:02:13,639
+No JDK class has an Optional field or parameter.
+
+32
+00:02:14,539 --> 00:02:16,158
+The API has two halves.
+
+33
+00:02:16,158 --> 00:02:22,562
+To create one, use Optional dot of when null would be a bug, because it throws immediately.
+
+34
+00:02:22,562 --> 00:02:26,714
+Use ofNullable at the boundary with code that returns null.
+
+35
+00:02:26,714 --> 00:02:31,007
+Using ofNullable everywhere hides bugs that of would surface.
+
+36
+00:02:31,007 --> 00:02:36,918
+Then stay inside the Optional with map, flatMap, filter, and Java 9's or and stream.
+
+37
+00:02:37,368 --> 00:02:39,529
+To leave, choose deliberately.
+
+38
+00:02:39,529 --> 00:02:48,891
+orElse with a default value, orElseGet with a lazy one, orElseThrow with your own exception, or ifPresentOrElse for both branches.
+
+39
+00:02:48,891 --> 00:02:49,900
+And avoid get.
+
+40
+00:02:49,900 --> 00:02:55,949
+It throws on empty, exactly like the null dereference Optional was meant to prevent.
+
+41
+00:02:56,849 --> 00:02:59,232
+Here's a cost hiding in plain sight.
+
+42
+00:02:59,232 --> 00:03:04,459
+orElse takes a value, so its argument is evaluated before the call, every time.
+
+43
+00:03:04,459 --> 00:03:10,348
+Here, the fallback price is computed on every lookup, even when the real price was found.
+
+44
+00:03:10,348 --> 00:03:14,120
+With a side-effecting call, that's a bug, not just waste.
+
+45
+00:03:14,120 --> 00:03:18,818
+orElseGet takes a supplier, so it only runs when the Optional is empty.
+
+46
+00:03:18,818 --> 00:03:22,855
+The same goes for exceptions: pass a supplier to orElseThrow.
+
+47
+00:03:23,305 --> 00:03:24,648
+The rule is simple.
+
+48
+00:03:24,648 --> 00:03:29,385
+orElse for literals and constants, orElseGet for anything computed.
+
+49
+00:03:30,285 --> 00:03:33,464
+Composition follows the same rules as streams.
+
+50
+00:03:33,464 --> 00:03:36,505
+Map when the function returns a plain value.
+
+51
+00:03:36,505 --> 00:03:42,864
+FlatMap when it already returns an Optional, otherwise you'd get an Optional of an Optional.
+
+52
+00:03:42,864 --> 00:03:50,743
+And filter turns a present but unsuitable value into empty, so a check joins the chain instead of interrupting it.
+
+53
+00:03:51,193 --> 00:04:00,637
+To look up many things and keep the ones that exist, map each SKU to an Optional, then flatMap with Optional colon colon stream.
+
+54
+00:04:00,637 --> 00:04:03,588
+Empties disappear, values are unwrapped.
+
+55
+00:04:04,038 --> 00:04:10,131
+And or chains alternative sources: try the primary vendor, then the backup, then a default.
+
+56
+00:04:10,131 --> 00:04:15,153
+Use or while you still want an Optional, and orElseGet when you're leaving.
+
+57
+00:04:16,053 --> 00:04:17,438
+Four anti-patterns.
+
+58
+00:04:17,438 --> 00:04:19,261
+One: Optional as a field.
+
+59
+00:04:19,261 --> 00:04:25,314
+It allocates a wrapper per instance, and Optional isn't Serializable, deliberately.
+
+60
+00:04:25,314 --> 00:04:28,085
+Null or a default says the same thing.
+
+61
+00:04:28,535 --> 00:04:30,422
+Two: Optional as a parameter.
+
+62
+00:04:30,422 --> 00:04:34,198
+The caller has to wrap, and you still have to handle null.
+
+63
+00:04:34,198 --> 00:04:41,228
+If you see a caller writing Optional dot empty as an argument, it's doing work an overload should have done.
+
+64
+00:04:41,678 --> 00:04:43,531
+Three: Optional of a list.
+
+65
+00:04:43,531 --> 00:04:46,880
+Is nothing an empty Optional, or an empty list?
+
+66
+00:04:46,880 --> 00:04:48,377
+Return an empty list.
+
+67
+00:04:48,827 --> 00:04:51,045
+Four: isPresent followed by get.
+
+68
+00:04:51,045 --> 00:04:55,691
+That's the null check you were trying to avoid, plus an allocation.
+
+69
+00:04:55,691 --> 00:04:57,147
+Use ifPresent or map.
+
+70
+00:04:58,047 --> 00:04:59,235
+Three internals.
+
+71
+00:04:59,235 --> 00:05:01,613
+Optional is a value-based class.
+
+72
+00:05:01,613 --> 00:05:10,676
+Its identity is unspecified, so never compare two with double equals, never synchronise on one, and it isn't Serializable.
+
+73
+00:05:11,126 --> 00:05:13,257
+Every Optional is an object.
+
+74
+00:05:13,257 --> 00:05:19,802
+In a hot loop, the JIT's escape analysis often removes the allocation, but not always.
+
+75
+00:05:19,802 --> 00:05:27,488
+In a measured hot path, returning a nullable value with a documented contract is a legitimate choice.
+
+76
+00:05:27,488 --> 00:05:29,771
+Everywhere else, clarity wins.
+
+77
+00:05:30,221 --> 00:05:32,207
+And get is a design regret.
+
+78
+00:05:32,207 --> 00:05:39,706
+It's as unsafe as the null dereference it replaced, and its name makes it look like the normal way in.
+
+79
+00:05:39,706 --> 00:05:45,368
+Java 10 added orElseThrow with no arguments as the honestly named equivalent.
+
+80
+00:05:46,268 --> 00:05:48,466
+Optional covers return types.
+
+81
+00:05:48,466 --> 00:05:51,345
+A real null strategy needs more tools.
+
+82
+00:05:51,795 --> 00:06:03,550
+For parameters that must not be null, call Objects dot requireNonNull with the parameter name at the top of the method, so it fails at the boundary instead of fifteen frames later.
+
+83
+00:06:04,000 --> 00:06:07,243
+For collections, return an empty collection, never null.
+
+84
+00:06:07,693 --> 00:06:12,836
+For fields, null plus a nullability annotation, or a default value.
+
+85
+00:06:12,836 --> 00:06:17,826
+Pick one annotation library per codebase and use it consistently.
+
+86
+00:06:18,276 --> 00:06:24,655
+When absence has behaviour, use a null object, like a vendor dot none with no-op methods.
+
+87
+00:06:25,105 --> 00:06:30,353
+And at the boundary with older code that returns null, convert once with ofNullable.
+
+88
+00:06:31,253 --> 00:06:32,438
+Production rules.
+
+89
+00:06:32,438 --> 00:06:37,944
+Return Optional where absence is a normal outcome, like a lookup that may miss.
+
+90
+00:06:37,944 --> 00:06:41,777
+Use of when null is a bug and ofNullable at boundaries.
+
+91
+00:06:41,777 --> 00:06:44,216
+Chain with map, flatMap and filter.
+
+92
+00:06:44,216 --> 00:06:46,725
+Use orElseGet for anything computed.
+
+93
+00:06:46,725 --> 00:06:52,998
+When absence really is an error, orElseThrow with an exception that names the missing key.
+
+94
+00:06:52,998 --> 00:06:55,786
+And requireNonNull on public parameters.
+
+95
+00:06:56,236 --> 00:06:59,426
+Never use Optional for fields or parameters.
+
+96
+00:06:59,426 --> 00:07:04,719
+Never wrap a collection in an Optional, or put Optionals in a collection.
+
+97
+00:07:04,719 --> 00:07:07,039
+Never call get, use orElseThrow.
+
+98
+00:07:07,039 --> 00:07:09,286
+Never write isPresent then get.
+
+99
+00:07:09,286 --> 00:07:12,404
+Never compare Optionals with double equals.
+
+100
+00:07:12,404 --> 00:07:15,884
+And don't wrap a value whose default is obvious.
+
+101
+00:07:16,784 --> 00:07:20,496
+Java 8 introduced Optional and its primitive versions.
+
+102
+00:07:20,946 --> 00:07:27,005
+Java 9 added stream, or, and ifPresentOrElse, which made composition much smoother.
+
+103
+00:07:27,455 --> 00:07:36,244
+Java 10 added orElseThrow with no arguments, and Java 11 added isEmpty, which reads better than not isPresent.
+
+104
+00:07:36,694 --> 00:07:46,187
+Java 14's helpful NullPointerException messages name the exact expression that was null, which narrowed the gap Optional was filling.
+
+105
+00:07:46,637 --> 00:07:57,176
+And with records, sealed types and pattern matching, a sealed result like found or not found is now a good alternative when absence needs to carry a reason.
+
+106
+00:07:58,076 --> 00:07:58,707
+To recap.
+
+107
+00:07:58,707 --> 00:08:03,407
+Optional is for return types, so absence shows up in the signature.
+
+108
+00:08:03,407 --> 00:08:07,685
+Chain it with map, flatMap and filter, and exit deliberately.
+
+109
+00:08:07,685 --> 00:08:11,613
+orElse is eager, so use orElseGet for anything computed.
+
+110
+00:08:11,613 --> 00:08:15,541
+Keep Optional out of fields, parameters and collections.
+
+111
+00:08:15,541 --> 00:08:21,713
+And complete your null strategy with requireNonNull, empty collections and null objects.
+
+112
+00:08:22,163 --> 00:08:24,770
+Next is chapter ten, java dot time.
+
+113
+00:08:24,770 --> 00:08:26,259
+Thanks for watching.

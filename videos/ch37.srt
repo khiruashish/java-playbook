@@ -1,0 +1,315 @@
+1
+00:00:00,600 --> 00:00:03,865
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,865 --> 00:00:08,451
+This is chapter thirty-seven: profiling with Java Flight Recorder.
+
+3
+00:00:08,901 --> 00:00:12,626
+Most performance problems can't be reproduced locally.
+
+4
+00:00:12,626 --> 00:00:15,800
+The data, the load and the heap are different.
+
+5
+00:00:15,800 --> 00:00:23,941
+Flight Recorder is a profiler built into the JVM, cheap enough to leave running, so it records what actually happened.
+
+6
+00:00:24,841 --> 00:00:26,732
+Here's the classic incident.
+
+7
+00:00:26,732 --> 00:00:37,066
+Latency spiked to two point four seconds at two minutes past two, recovered on its own by nine past, and at eleven past someone asks you to look into it.
+
+8
+00:00:37,066 --> 00:00:44,361
+You have graphs showing that it happened, logs showing nothing unusual, and a service now behaving normally.
+
+9
+00:00:44,811 --> 00:00:49,291
+Reproducing locally won't work, because the load and data are different.
+
+10
+00:00:49,741 --> 00:00:54,071
+Adding logging gives you nothing until it happens again, maybe next month.
+
+11
+00:00:54,521 --> 00:00:58,063
+Attaching a profiler means being attached when it happened.
+
+12
+00:00:58,513 --> 00:01:05,659
+What you need is a recording that was already running, detailed enough to answer questions you hadn't thought to ask yet.
+
+13
+00:01:06,559 --> 00:01:19,466
+The JVM and JDK libraries are already instrumented with hundreds of event types: GC phases, lock contention, socket reads, class loading, allocations, exceptions.
+
+14
+00:01:19,916 --> 00:01:24,823
+JFR writes the enabled ones into per-thread buffers, with no locking.
+
+15
+00:01:25,273 --> 00:01:28,067
+Full buffers are handed to a global buffer,
+
+16
+00:01:28,517 --> 00:01:31,269
+and a background thread writes chunks to disk.
+
+17
+00:01:31,719 --> 00:01:35,976
+So the overhead is about one percent with the default settings.
+
+18
+00:01:35,976 --> 00:01:38,679
+And it records meaning, not just stacks.
+
+19
+00:01:38,679 --> 00:01:42,396
+A sampling profiler says a thread was in a socket read.
+
+20
+00:01:42,396 --> 00:01:47,463
+JFR tells you which socket, to which address, for how long, with the stack.
+
+21
+00:01:48,363 --> 00:01:51,791
+Here's the configuration every service should have.
+
+22
+00:01:51,791 --> 00:02:00,998
+Start a recording at launch with the default settings, keeping a rolling six-hour window on disk, capped at a gigabyte, and dump on exit.
+
+23
+00:02:00,998 --> 00:02:06,576
+When an incident happens, JFR dot dump writes out the six hours before the command.
+
+24
+00:02:06,576 --> 00:02:08,122
+That's the whole point.
+
+25
+00:02:08,122 --> 00:02:11,617
+And dump on exit captures the window before a crash.
+
+26
+00:02:12,067 --> 00:02:15,161
+The default profile costs about one percent.
+
+27
+00:02:15,161 --> 00:02:19,942
+For an investigation, use the profile settings at about two percent.
+
+28
+00:02:19,942 --> 00:02:26,552
+Note that only profile includes allocation events, so default can't answer what is allocating.
+
+29
+00:02:27,452 --> 00:02:29,109
+Start with jfr summary.
+
+30
+00:02:29,109 --> 00:02:34,799
+The event counts usually point at the problem before you look at anything else.
+
+31
+00:02:34,799 --> 00:02:39,698
+Here, nearly nine thousand monitor contention events is the anomaly.
+
+32
+00:02:39,698 --> 00:02:45,244
+And only sixty-one garbage collections in six hours rules GC out immediately.
+
+33
+00:02:45,694 --> 00:02:48,222
+Then print those events with stacks.
+
+34
+00:02:48,222 --> 00:02:57,138
+The monitor is the InventoryCache, the previous owner is named, each wait lasted nearly two seconds, and here's the exact line.
+
+35
+00:02:57,138 --> 00:03:02,895
+A synchronized cache refresh was serialising every request thread during a reload.
+
+36
+00:03:02,895 --> 00:03:06,195
+No reproduction, no added logging, no guessing.
+
+37
+00:03:07,095 --> 00:03:11,917
+With the profile settings, allocation samples show what's allocating.
+
+38
+00:03:11,917 --> 00:03:15,131
+Weight is the total allocated along that path.
+
+39
+00:03:15,131 --> 00:03:21,699
+Here, an audit logger was serialising every order to a string even when audit logging was off.
+
+40
+00:03:21,699 --> 00:03:24,354
+Four hundred megabytes in two minutes.
+
+41
+00:03:24,354 --> 00:03:26,381
+The fix was one if statement.
+
+42
+00:03:26,831 --> 00:03:32,111
+You can add your own domain events by extending jdk dot jfr dot Event.
+
+43
+00:03:32,111 --> 00:03:35,052
+Begin, do the work, set fields, commit.
+
+44
+00:03:35,052 --> 00:03:41,388
+Then your reservations appear on the same timeline as GC pauses and lock contention.
+
+45
+00:03:41,388 --> 00:03:47,951
+When the event type is disabled, commit checks a flag and returns, so it's nearly free.
+
+46
+00:03:48,401 --> 00:03:54,004
+And for virtual threads, the VirtualThreadPinned event finds what's pinning carriers.
+
+47
+00:03:54,004 --> 00:03:57,169
+It supersedes the old trace pinned threads flag.
+
+48
+00:03:58,069 --> 00:04:04,938
+JFR is the always-on baseline, low overhead and rich, but it only sees Java frames.
+
+49
+00:04:05,388 --> 00:04:15,955
+async-profiler adds wall-clock profiling, meaning time spent blocked, not just on CPU, plus native frames and great flame graphs.
+
+50
+00:04:15,955 --> 00:04:18,167
+It can even read JFR files.
+
+51
+00:04:18,617 --> 00:04:23,374
+A thread dump is free and instant, but shows one moment with no history.
+
+52
+00:04:23,824 --> 00:04:30,459
+A heap dump is the definitive answer for memory questions, but it's large and pauses the JVM.
+
+53
+00:04:30,909 --> 00:04:37,768
+And APM agents trace requests across services, at higher overhead with less JVM detail.
+
+54
+00:04:37,768 --> 00:04:39,975
+These complement each other.
+
+55
+00:04:40,875 --> 00:04:42,690
+You don't need a GUI.
+
+56
+00:04:42,690 --> 00:04:50,727
+jfr summary first, then jfr print for specific events, with stacks, or as JSON piped into jq.
+
+57
+00:04:50,727 --> 00:04:56,171
+And jcmd can start, dump and check recordings on a running JVM.
+
+58
+00:04:56,621 --> 00:04:59,072
+Map your question to an event.
+
+59
+00:04:59,072 --> 00:05:04,056
+CPU usage: execution samples, and Java 25's CPU time samples.
+
+60
+00:05:04,056 --> 00:05:07,487
+Contention: monitor enter and thread park.
+
+61
+00:05:07,487 --> 00:05:10,265
+Slow calls: socket and file reads.
+
+62
+00:05:10,265 --> 00:05:15,331
+And exceptions thrown in a loop show up as JavaExceptionThrow.
+
+63
+00:05:16,231 --> 00:05:17,559
+Production rules.
+
+64
+00:05:17,559 --> 00:05:22,948
+Run continuous JFR on every service, with a max age and disk enabled.
+
+65
+00:05:22,948 --> 00:05:25,604
+Use dump on exit to catch crashes.
+
+66
+00:05:25,604 --> 00:05:28,494
+Run jfr summary before anything else.
+
+67
+00:05:28,494 --> 00:05:32,400
+Use the profile settings for allocation questions.
+
+68
+00:05:32,400 --> 00:05:36,540
+And add custom events for your key domain operations.
+
+69
+00:05:36,990 --> 00:05:39,047
+Never wait for a reproduction.
+
+70
+00:05:39,047 --> 00:05:42,817
+Don't expect allocation data from the default settings.
+
+71
+00:05:42,817 --> 00:05:47,410
+Don't use JFR for native-frame problems, which need async-profiler.
+
+72
+00:05:47,410 --> 00:05:53,374
+And don't write recordings to ephemeral container storage, which vanishes with the pod.
+
+73
+00:05:54,274 --> 00:05:54,954
+To recap.
+
+74
+00:05:54,954 --> 00:05:59,865
+JFR is built in and costs about one percent, so leave it running.
+
+75
+00:05:59,865 --> 00:06:05,154
+A rolling window means that when something happens, you dump the past.
+
+76
+00:06:05,154 --> 00:06:09,084
+Start with jfr summary, then drill into the anomaly.
+
+77
+00:06:09,084 --> 00:06:15,053
+And custom events put your domain operations on the same timeline as the JVM's.
+
+78
+00:06:15,503 --> 00:06:18,391
+Next is chapter thirty-eight: stream gatherers.
+
+79
+00:06:18,391 --> 00:06:19,620
+Thanks for watching.

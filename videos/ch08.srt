@@ -1,0 +1,459 @@
+1
+00:00:00,600 --> 00:00:03,743
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,743 --> 00:00:07,555
+This is chapter eight: collectors and stream composition.
+
+3
+00:00:08,005 --> 00:00:16,296
+Most developers learn three collectors, toList, toSet and toMap, and then drop out of the stream to finish the job with a loop.
+
+4
+00:00:16,296 --> 00:00:25,370
+That's exactly where streams stop paying off, because grouping, partitioning and multi-level aggregation are what collect was designed for.
+
+5
+00:00:26,270 --> 00:00:29,925
+The task: total revenue per vendor, per delivery slot.
+
+6
+00:00:29,925 --> 00:00:40,009
+The loop works, but it's nested container management, and every variation, a third level, a filter, a count instead of a sum, means restructuring it.
+
+7
+00:00:40,459 --> 00:00:41,685
+Reduce can't help.
+
+8
+00:00:41,685 --> 00:00:49,178
+It expects a brand-new value at every step, so building a map with it means copying the map for every element.
+
+9
+00:00:49,178 --> 00:00:50,336
+That's quadratic.
+
+10
+00:00:50,786 --> 00:00:52,514
+Collect exists for this.
+
+11
+00:00:52,514 --> 00:00:58,272
+It's mutable reduction: create one container, then mutate it as elements arrive.
+
+12
+00:00:58,272 --> 00:01:03,671
+Use reduce for values, like a sum or a maximum, and collect for containers.
+
+13
+00:01:04,571 --> 00:01:06,671
+A Collector isn't one function.
+
+14
+00:01:06,671 --> 00:01:07,348
+It's five.
+
+15
+00:01:07,348 --> 00:01:11,547
+The supplier creates an empty container, like a new ArrayList.
+
+16
+00:01:11,997 --> 00:01:16,307
+The accumulator folds one element into it, like list dot add.
+
+17
+00:01:16,757 --> 00:01:19,090
+The combiner merges two containers.
+
+18
+00:01:19,090 --> 00:01:23,690
+That's only used in parallel, when each thread has its own container.
+
+19
+00:01:24,140 --> 00:01:27,687
+The finisher turns the container into the final result.
+
+20
+00:01:27,687 --> 00:01:29,815
+For toList there's nothing to do.
+
+21
+00:01:30,265 --> 00:01:36,878
+And characteristics are hints to the stream, like identity finish, meaning the container is the result.
+
+22
+00:01:37,328 --> 00:01:41,532
+Remember this one fact: the combiner only runs in parallel.
+
+23
+00:01:41,532 --> 00:01:45,451
+A sequential stream uses a single container throughout.
+
+24
+00:01:45,451 --> 00:01:51,792
+So a broken combiner passes every test, then corrupts data the day someone adds parallel.
+
+25
+00:01:52,692 --> 00:01:55,837
+Here's the feature that makes the API compose.
+
+26
+00:01:55,837 --> 00:02:04,383
+groupingBy takes a classifier, and an optional second collector, called the downstream, that decides what each group becomes.
+
+27
+00:02:04,833 --> 00:02:08,383
+With toList, each vendor maps to a list of lines.
+
+28
+00:02:08,383 --> 00:02:10,267
+With counting, to a count.
+
+29
+00:02:10,267 --> 00:02:12,513
+With mapping, to a set of SKUs.
+
+30
+00:02:12,963 --> 00:02:15,799
+And the downstream can be another groupingBy.
+
+31
+00:02:15,799 --> 00:02:19,896
+That's how you nest to any depth, with no special support needed.
+
+32
+00:02:20,796 --> 00:02:26,507
+Revenue per vendor: group by vendor name, with a downstream reducing collector.
+
+33
+00:02:26,507 --> 00:02:33,085
+The three-argument reducing is the one to remember: an identity, a mapper, and an operator.
+
+34
+00:02:33,085 --> 00:02:34,748
+Zero, line total, plus.
+
+35
+00:02:35,198 --> 00:02:40,271
+The two-level report from the loop is just a groupingBy inside a groupingBy.
+
+36
+00:02:40,271 --> 00:02:47,081
+Past two levels, extract a record and a named method, because the type signature stops being readable.
+
+37
+00:02:47,531 --> 00:02:51,753
+groupingBy returns a HashMap, so key order is unspecified.
+
+38
+00:02:51,753 --> 00:02:57,941
+If order matters, pass a map factory like TreeMap new, instead of sorting afterwards.
+
+39
+00:02:58,841 --> 00:03:04,937
+Three downstream collectors shape elements inside each group, after classification.
+
+40
+00:03:04,937 --> 00:03:10,152
+Mapping transforms them, like collecting each vendor's SKUs into a set.
+
+41
+00:03:10,152 --> 00:03:14,265
+Java 9 added flatMapping, which flattens, and filtering.
+
+42
+00:03:14,715 --> 00:03:16,583
+Filtering is the subtle one.
+
+43
+00:03:16,583 --> 00:03:23,654
+If you filter before grouping, vendors whose lines are all non-perishable disappear from the map entirely.
+
+44
+00:03:24,104 --> 00:03:30,439
+If you use filtering as the downstream, every vendor stays as a key, some with an empty list.
+
+45
+00:03:30,439 --> 00:03:36,637
+Which one you want depends on whether the report should show vendors with zero perishables.
+
+46
+00:03:36,637 --> 00:03:41,405
+The two spellings look almost identical, which is how the bug happens.
+
+47
+00:03:42,305 --> 00:03:45,243
+For a yes or no split, use partitioningBy.
+
+48
+00:03:45,243 --> 00:03:50,208
+Split the cart into lines we can fulfil and lines that are backordered.
+
+49
+00:03:50,208 --> 00:03:54,615
+It takes a downstream too, so you can count instead of listing.
+
+50
+00:03:55,065 --> 00:04:05,469
+The reason to prefer it over groupingBy with a boolean: partitioningBy always returns both keys, true and false, even when one side is empty.
+
+51
+00:04:05,469 --> 00:04:10,339
+groupingBy leaves absent groups out, so get false can return null.
+
+52
+00:04:11,239 --> 00:04:13,992
+toMap has three separate failure modes.
+
+53
+00:04:13,992 --> 00:04:23,449
+First, duplicate keys throw an IllegalStateException at runtime, on whatever data triggers it, which is rarely the data in your tests.
+
+54
+00:04:23,449 --> 00:04:28,178
+Always supply a merge function unless keys are structurally unique.
+
+55
+00:04:28,628 --> 00:04:38,568
+Second, null values throw a NullPointerException, even though a HashMap would accept them, because toMap uses map dot merge internally.
+
+56
+00:04:38,568 --> 00:04:40,703
+Filter or default them first.
+
+57
+00:04:41,153 --> 00:04:46,141
+Third, the result is a HashMap, so iteration order is unspecified.
+
+58
+00:04:46,141 --> 00:04:50,902
+Pass LinkedHashMap new as the fourth argument if order matters.
+
+59
+00:04:51,802 --> 00:04:58,397
+Java 12's teeing feeds every element to two collectors at once, then merges their results.
+
+60
+00:04:58,397 --> 00:05:03,599
+Here, min and max in a single pass, combined into a price range record.
+
+61
+00:05:03,599 --> 00:05:08,655
+Before Java 12 that meant two traversals or a hand-written collector.
+
+62
+00:05:09,105 --> 00:05:19,281
+It's also the clean way to compute a ratio: count the perishable lines and count all lines in the same pass, then divide, guarding against zero.
+
+63
+00:05:19,731 --> 00:05:23,978
+And collectingAndThen collects, then transforms the result.
+
+64
+00:05:23,978 --> 00:05:27,074
+Here, each group becomes an immutable list.
+
+65
+00:05:27,074 --> 00:05:32,041
+It allocates twice, which matters on a hot path but not for a report.
+
+66
+00:05:32,941 --> 00:05:37,965
+Write your own collector only when no combination of the built-ins fits.
+
+67
+00:05:37,965 --> 00:05:40,337
+A bounded top-N is a good example.
+
+68
+00:05:40,337 --> 00:05:42,640
+The supplier is a priority queue.
+
+69
+00:05:42,640 --> 00:05:48,292
+The accumulator adds each item and evicts the smallest once it holds more than n.
+
+70
+00:05:48,292 --> 00:05:50,455
+The finisher sorts what's left.
+
+71
+00:05:50,905 --> 00:05:55,254
+It's worth it because sorted then limit buffers the entire stream.
+
+72
+00:05:55,254 --> 00:05:57,625
+This keeps memory proportional to n.
+
+73
+00:05:58,075 --> 00:06:01,025
+The combiner is the part people get wrong.
+
+74
+00:06:01,025 --> 00:06:06,996
+It must be associative, and consistent with accumulating everything in one container.
+
+75
+00:06:06,996 --> 00:06:15,846
+A combiner that just returns a silently drops everything in b, and only in parallel, so no sequential test will ever catch it.
+
+76
+00:06:16,746 --> 00:06:18,645
+Two internals worth knowing.
+
+77
+00:06:18,645 --> 00:06:22,173
+Characteristics: identity finish skips the finisher.
+
+78
+00:06:22,173 --> 00:06:24,954
+Unordered makes parallel merging cheaper.
+
+79
+00:06:24,954 --> 00:06:31,060
+And concurrent lets every thread write into one shared container, skipping the merge tree.
+
+80
+00:06:31,060 --> 00:06:35,469
+That helps only on large parallel streams with many small groups.
+
+81
+00:06:35,469 --> 00:06:39,743
+On a sequential stream, groupingByConcurrent is strictly worse.
+
+82
+00:06:40,193 --> 00:06:42,663
+And the three ways to get a list.
+
+83
+00:06:42,663 --> 00:06:48,501
+Collectors dot toList is mutable in practice, but the spec doesn't promise it.
+
+84
+00:06:48,501 --> 00:06:50,971
+toUnmodifiableList rejects nulls.
+
+85
+00:06:50,971 --> 00:06:58,455
+Stream dot toList, from Java 16, is unmodifiable and allows nulls, which makes it the right default.
+
+86
+00:06:59,355 --> 00:07:00,567
+Production rules.
+
+87
+00:07:00,567 --> 00:07:03,064
+Always give toMap a merge function.
+
+88
+00:07:03,064 --> 00:07:05,276
+Use counting, not summing ones.
+
+89
+00:07:05,276 --> 00:07:10,555
+Use summarizingInt or teeing when you need several aggregates in one pass.
+
+90
+00:07:10,555 --> 00:07:13,266
+Pass a map factory when order matters.
+
+91
+00:07:13,266 --> 00:07:15,977
+Name multi-level groupings as methods.
+
+92
+00:07:15,977 --> 00:07:19,259
+And prefer Stream dot toList for simple lists.
+
+93
+00:07:19,709 --> 00:07:22,010
+Never build a container with reduce.
+
+94
+00:07:22,010 --> 00:07:25,271
+Never write a combiner you haven't thought through.
+
+95
+00:07:25,271 --> 00:07:29,491
+Never use collect for side effects, like saving as you accumulate.
+
+96
+00:07:29,491 --> 00:07:31,792
+Never assume groupingBy's key order.
+
+97
+00:07:31,792 --> 00:07:33,838
+Never feed null values to toMap.
+
+98
+00:07:33,838 --> 00:07:40,487
+And never hand-write a collector when mapping, filtering, teeing and collectingAndThen already cover it.
+
+99
+00:07:41,387 --> 00:07:48,470
+Java 8 shipped the core collectors: groupingBy, partitioningBy, toMap, joining, mapping and reducing.
+
+100
+00:07:48,920 --> 00:07:53,720
+Java 9 added flatMapping and filtering for shaping inside groups.
+
+101
+00:07:54,170 --> 00:07:57,491
+Java 10 added the unmodifiable collectors.
+
+102
+00:07:57,491 --> 00:08:00,101
+Immutable, but they reject nulls.
+
+103
+00:08:00,551 --> 00:08:02,407
+Java 12 added teeing.
+
+104
+00:08:02,857 --> 00:08:05,216
+Java 16 added Stream dot toList.
+
+105
+00:08:05,216 --> 00:08:14,654
+When migrating, check nobody adds to the result, because the old collector's list was mutable and the new one throws at runtime.
+
+106
+00:08:15,104 --> 00:08:23,153
+And Java 24 finalised stream gatherers, the mirror image of custom collectors, for intermediate operations.
+
+107
+00:08:23,153 --> 00:08:25,259
+That's chapter thirty-eight.
+
+108
+00:08:26,159 --> 00:08:26,780
+To recap.
+
+109
+00:08:26,780 --> 00:08:30,786
+Collect mutates a container, while reduce produces values.
+
+110
+00:08:30,786 --> 00:08:35,344
+A collector is five parts, and the combiner only runs in parallel.
+
+111
+00:08:35,344 --> 00:08:39,142
+Downstream collectors let groupingBy nest to any depth.
+
+112
+00:08:39,142 --> 00:08:44,460
+Filtering as a downstream keeps empty groups, and filtering first drops them.
+
+113
+00:08:44,460 --> 00:08:50,607
+And toMap needs a merge function, rejects nulls, and has no order unless you ask for one.
+
+114
+00:08:51,057 --> 00:08:54,374
+Next is chapter nine, Optional and null strategy.
+
+115
+00:08:54,374 --> 00:08:55,729
+Thanks for watching.

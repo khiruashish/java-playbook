@@ -1,0 +1,495 @@
+1
+00:00:00,600 --> 00:00:03,923
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,923 --> 00:00:07,811
+This is chapter six: lambdas and functional interfaces.
+
+3
+00:00:08,261 --> 00:00:14,272
+Java 8 added lambdas, and most codebases treated them as shorter anonymous classes.
+
+4
+00:00:14,272 --> 00:00:15,792
+That undersells them.
+
+5
+00:00:15,792 --> 00:00:20,355
+Lambdas made behaviour a value you can pass, store and compose.
+
+6
+00:00:20,355 --> 00:00:25,859
+That's what streams, CompletableFuture, and the modern Map API are built on.
+
+7
+00:00:25,859 --> 00:00:27,525
+Let's see how it works.
+
+8
+00:00:28,425 --> 00:00:32,145
+Our order engine needs to sort cart lines by price.
+
+9
+00:00:32,145 --> 00:00:36,157
+Before Java 8, you wrote an anonymous Comparator class.
+
+10
+00:00:36,157 --> 00:00:45,641
+That's six lines, and the only real instruction, compare by line total, is buried inside a type, a method, and two sets of braces.
+
+11
+00:00:46,091 --> 00:00:48,206
+In Java 8 it's a single line.
+
+12
+00:00:48,206 --> 00:00:52,875
+Comparator dot comparing, with a method reference to line total.
+
+13
+00:00:53,325 --> 00:00:54,699
+That ratio matters.
+
+14
+00:00:54,699 --> 00:01:00,051
+When passing behaviour was expensive, people wrote if-else chains instead.
+
+15
+00:01:00,051 --> 00:01:05,549
+Once it became cheap, passing behaviour became the normal way to write Java.
+
+16
+00:01:06,449 --> 00:01:08,012
+Here's the mental model.
+
+17
+00:01:08,012 --> 00:01:15,110
+A lambda is an instance of a functional interface, created from an expression instead of a class declaration.
+
+18
+00:01:15,560 --> 00:01:20,360
+When you assign a lambda to a Comparator of CartLine, that's its target type.
+
+19
+00:01:20,810 --> 00:01:28,810
+The compiler looks up that interface's single abstract method: compare, which takes two cart lines and returns an int.
+
+20
+00:01:29,260 --> 00:01:36,513
+The lambda's parameters and return value have to match that signature, so the compiler can infer every type for you.
+
+21
+00:01:36,963 --> 00:01:38,212
+Two consequences.
+
+22
+00:01:38,212 --> 00:01:41,077
+First, a lambda has no type of its own.
+
+23
+00:01:41,077 --> 00:01:46,587
+The same text can be a Comparator in one place and a BiFunction in another.
+
+24
+00:01:46,587 --> 00:01:48,718
+This is called target typing.
+
+25
+00:01:49,168 --> 00:01:55,174
+Second, a functional interface is simply any interface with exactly one abstract method.
+
+26
+00:01:55,174 --> 00:01:57,835
+Default and static methods don't count.
+
+27
+00:01:57,835 --> 00:02:04,251
+That's how Comparator carries around twenty helper methods and is still a valid lambda target.
+
+28
+00:02:05,151 --> 00:02:12,761
+Java ships more than forty functional interfaces, but nearly all of them are variations on four shapes.
+
+29
+00:02:12,761 --> 00:02:18,228
+Function takes one value and returns one, like turning a SKU into a price.
+
+30
+00:02:18,678 --> 00:02:22,050
+Predicate takes one value and returns a boolean.
+
+31
+00:02:22,050 --> 00:02:23,947
+Is this cart line in stock?
+
+32
+00:02:24,397 --> 00:02:27,517
+Consumer takes one value and returns nothing.
+
+33
+00:02:27,517 --> 00:02:31,053
+It's for side effects, like sending an order email.
+
+34
+00:02:31,503 --> 00:02:37,157
+And Supplier takes nothing and returns a value, like generating a new order ID.
+
+35
+00:02:37,607 --> 00:02:40,640
+Learn those four and the rest is mechanical.
+
+36
+00:02:40,640 --> 00:02:42,364
+Add Bi for two arguments.
+
+37
+00:02:42,814 --> 00:02:47,405
+Add Int, Long or Double for primitive versions that avoid boxing.
+
+38
+00:02:47,405 --> 00:02:50,089
+These matter in hot loops and streams.
+
+39
+00:02:50,539 --> 00:02:58,197
+And UnaryOperator and BinaryOperator are just the special cases where the input and output types are the same.
+
+40
+00:02:59,097 --> 00:03:01,098
+The syntax has a few forms.
+
+41
+00:03:01,098 --> 00:03:07,172
+Empty parentheses for no parameters, a bare name for one, parentheses for several.
+
+42
+00:03:07,172 --> 00:03:13,543
+You can add explicit types, or since Java 11, var, which lets you annotate parameters.
+
+43
+00:03:13,543 --> 00:03:17,099
+An expression body returns its value implicitly.
+
+44
+00:03:17,099 --> 00:03:20,729
+A block body needs braces and an explicit return.
+
+45
+00:03:21,179 --> 00:03:26,444
+When a lambda just calls an existing method, use a method reference instead.
+
+46
+00:03:26,444 --> 00:03:33,233
+There are four kinds: static, bound to a particular instance, unbound, and constructor references.
+
+47
+00:03:33,683 --> 00:03:37,134
+The unbound kind is the one that confuses people.
+
+48
+00:03:37,134 --> 00:03:45,587
+CartLine colon colon line total takes the receiver as its first parameter, so it fits a Function from CartLine to Money.
+
+49
+00:03:46,487 --> 00:03:48,519
+Here's where it gets powerful.
+
+50
+00:03:48,519 --> 00:03:51,703
+A pricing rule is our own functional interface.
+
+51
+00:03:51,703 --> 00:03:56,378
+One abstract method, apply, which takes a subtotal and returns money.
+
+52
+00:03:56,378 --> 00:04:02,272
+Its default andThen method returns a new lambda that runs this rule, then the next one.
+
+53
+00:04:02,272 --> 00:04:08,844
+Mark it at FunctionalInterface, so the compiler rejects anyone who adds a second abstract method.
+
+54
+00:04:09,294 --> 00:04:19,949
+Now each business rule is a one-line lambda: a ten percent bulk discount, a forty rupee delivery fee, and a hundred rupees off for the festive offer.
+
+55
+00:04:19,949 --> 00:04:23,310
+Chain them with andThen into one checkout rule.
+
+56
+00:04:23,760 --> 00:04:25,812
+Apply it to a thousand rupees.
+
+57
+00:04:25,812 --> 00:04:33,407
+The discount takes it to nine hundred, delivery adds forty, and the offer brings it to eight hundred and forty.
+
+58
+00:04:33,407 --> 00:04:43,259
+The built-in interfaces work the same way: Function has andThen and compose, Predicate has and, or and negate, and Comparator has thenComparing.
+
+59
+00:04:44,159 --> 00:04:45,860
+Predicates compose too.
+
+60
+00:04:45,860 --> 00:04:50,371
+Name each condition, in stock, perishable, then combine them.
+
+61
+00:04:50,371 --> 00:04:53,626
+Needs cold chain is in stock and perishable.
+
+62
+00:04:53,626 --> 00:04:57,546
+Each one is named, testable on its own, and reusable.
+
+63
+00:04:57,546 --> 00:05:00,948
+An inline boolean expression is none of those.
+
+64
+00:05:01,398 --> 00:05:03,945
+Comparators lose all their ceremony.
+
+65
+00:05:03,945 --> 00:05:08,403
+Sort by vendor, then by product name, then by price descending.
+
+66
+00:05:08,403 --> 00:05:17,249
+When the key is a number, use comparingInt, comparingLong or comparingDouble, so you don't box every key on every comparison.
+
+67
+00:05:17,699 --> 00:05:22,312
+And a Supplier, or any function argument, gives you laziness.
+
+68
+00:05:22,312 --> 00:05:27,606
+getOrDefault evaluates the expensive lookup every time, even on a hit.
+
+69
+00:05:27,606 --> 00:05:30,555
+computeIfAbsent only runs it on a miss.
+
+70
+00:05:30,555 --> 00:05:34,488
+Optional's orElseGet versus orElse is the same idea.
+
+71
+00:05:35,388 --> 00:05:36,542
+Two sharp edges.
+
+72
+00:05:36,542 --> 00:05:37,625
+First, capture.
+
+73
+00:05:37,625 --> 00:05:42,891
+A lambda captures the value of a local variable, not the variable itself.
+
+74
+00:05:42,891 --> 00:05:48,735
+So the variable must be effectively final, and reassigning it is a compile error.
+
+75
+00:05:48,735 --> 00:05:51,260
+Fields don't have this restriction.
+
+76
+00:05:51,710 --> 00:05:57,048
+The classic workaround is a one-element array you mutate from inside the lambda.
+
+77
+00:05:57,048 --> 00:06:03,187
+It compiles, but it isn't thread-safe, and it's a sign you really wanted a loop or a reduce.
+
+78
+00:06:03,637 --> 00:06:05,472
+Second, checked exceptions.
+
+79
+00:06:05,472 --> 00:06:13,080
+None of the standard functional interfaces declare them, so a lambda calling Files dot readString won't compile.
+
+80
+00:06:13,080 --> 00:06:18,312
+You can catch and rethrow as unchecked, or write your own throwing interface.
+
+81
+00:06:18,312 --> 00:06:22,048
+But often the honest answer is to keep it a plain loop.
+
+82
+00:06:22,948 --> 00:06:26,566
+Under the hood, a lambda is not an anonymous class.
+
+83
+00:06:26,566 --> 00:06:31,887
+javac compiles the lambda body into a private method with a synthetic name.
+
+84
+00:06:32,337 --> 00:06:35,771
+The call site becomes an invokedynamic instruction.
+
+85
+00:06:36,221 --> 00:06:44,371
+The first time it runs, the JVM calls the lambda metafactory, which spins up an implementation class at runtime.
+
+86
+00:06:44,821 --> 00:06:50,200
+Then the call site is linked permanently, so later calls jump straight there.
+
+87
+00:06:50,200 --> 00:06:58,303
+Because the strategy is decided at runtime, lambda performance has improved across JDK versions without recompiling.
+
+88
+00:06:58,753 --> 00:07:00,380
+Practical consequences.
+
+89
+00:07:00,380 --> 00:07:06,177
+There's no class file per lambda, so jars stay small and class loading stays fast.
+
+90
+00:07:06,627 --> 00:07:09,940
+A lambda that captures nothing is a singleton.
+
+91
+00:07:09,940 --> 00:07:15,630
+One that captures a variable allocates a new instance each time it's evaluated.
+
+92
+00:07:16,080 --> 00:07:20,750
+Inside a lambda, this means the enclosing instance, not the lambda.
+
+93
+00:07:20,750 --> 00:07:27,024
+Remember that when converting anonymous classes, because it can silently change behaviour.
+
+94
+00:07:27,474 --> 00:07:31,411
+And lambdas appear in stack traces with positional names.
+
+95
+00:07:31,411 --> 00:07:38,802
+If a lambda has real logic you'll need to debug, extract it into a named method and use a method reference.
+
+96
+00:07:39,702 --> 00:07:42,299
+Let's turn that into production rules.
+
+97
+00:07:42,299 --> 00:07:46,467
+Do: annotate your own interfaces with at FunctionalInterface.
+
+98
+00:07:46,467 --> 00:07:50,157
+Prefer method references when a lambda just delegates.
+
+99
+00:07:50,157 --> 00:07:52,070
+Name non-trivial predicates.
+
+100
+00:07:52,070 --> 00:07:55,213
+Use the primitive specialisations for numbers.
+
+101
+00:07:55,213 --> 00:07:56,922
+Compose rather than nest.
+
+102
+00:07:56,922 --> 00:08:01,910
+And extract any lambda longer than about three lines into a named method.
+
+103
+00:08:02,360 --> 00:08:06,746
+Never: mutate captured state through arrays or holder objects.
+
+104
+00:08:06,746 --> 00:08:14,315
+Never put side effects in a function that's expected to be pure, like one passed to map or computeIfAbsent.
+
+105
+00:08:14,315 --> 00:08:17,428
+That's a race waiting for a parallel stream.
+
+106
+00:08:17,428 --> 00:08:20,045
+Don't wrap every lambda in try catch.
+
+107
+00:08:20,045 --> 00:08:28,958
+Don't overload a method on two functional interfaces with the same number of parameters, because callers hit ambiguity errors.
+
+108
+00:08:28,958 --> 00:08:31,364
+And never rely on lambda identity.
+
+109
+00:08:31,364 --> 00:08:40,135
+Comparing two lambdas with double equals is unspecified, which also makes them bad map keys or listeners you plan to remove.
+
+110
+00:08:41,035 --> 00:08:50,785
+Java 8 introduced the whole model: lambdas, method references, the java util function package, and default and static interface methods.
+
+111
+00:08:51,235 --> 00:08:57,869
+Java 9 added private interface methods, so default methods can share code without exposing it.
+
+112
+00:08:58,319 --> 00:09:08,133
+Java 10 and 11 brought var, including in lambda parameters, plus Predicate dot not, which reads better than negate with a method reference.
+
+113
+00:09:08,583 --> 00:09:13,227
+Records and sealed interfaces in 16 and 17 fit the model well.
+
+114
+00:09:13,227 --> 00:09:18,396
+A sealed interface with one abstract method is still a lambda target.
+
+115
+00:09:18,846 --> 00:09:26,014
+Java 21's pattern matching for switch replaces some old dispatch tables built from maps of functions.
+
+116
+00:09:26,464 --> 00:09:31,093
+And as of Java 26, the lambda model itself is unchanged.
+
+117
+00:09:31,993 --> 00:09:32,602
+To recap.
+
+118
+00:09:32,602 --> 00:09:38,624
+A lambda is an instance of a functional interface, and it takes its type from its target.
+
+119
+00:09:38,624 --> 00:09:43,157
+Learn the four shapes: function, predicate, consumer, and supplier.
+
+120
+00:09:43,157 --> 00:09:45,864
+Compose behaviour instead of nesting it.
+
+121
+00:09:45,864 --> 00:09:50,532
+And under the hood, lambdas use invokedynamic, not anonymous classes.
+
+122
+00:09:50,982 --> 00:09:57,727
+The full chapter, with interview questions from foundation to architect level, is in the handbook.
+
+123
+00:09:57,727 --> 00:10:00,549
+Next up is chapter seven, the Stream API.
+
+124
+00:10:00,549 --> 00:10:01,926
+Thanks for watching.
