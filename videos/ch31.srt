@@ -1,0 +1,371 @@
+1
+00:00:00,600 --> 00:00:04,206
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,206 --> 00:00:08,963
+This is chapter thirty-one: virtual threads, final in Java 21.
+
+3
+00:00:09,413 --> 00:00:16,642
+Virtual threads let you keep writing plain blocking code, while the thread doing the blocking costs almost nothing.
+
+4
+00:00:16,642 --> 00:00:21,231
+But they change what's scarce in your system, and that catches teams out.
+
+5
+00:00:22,131 --> 00:00:26,758
+A dispatcher calls a vendor API that takes two hundred milliseconds.
+
+6
+00:00:26,758 --> 00:00:36,013
+A pool of two hundred platform threads already reserves around two hundred megabytes of stack, and caps throughput at two hundred calls.
+
+7
+00:00:36,013 --> 00:00:41,865
+Each thread spends almost all its time parked, holding an OS thread that does nothing.
+
+8
+00:00:42,315 --> 00:00:44,913
+Before Java 21, you had two choices.
+
+9
+00:00:44,913 --> 00:00:52,420
+Go reactive, which scales but costs you readable stack traces, debugging, and plain loops and try-catch.
+
+10
+00:00:52,420 --> 00:00:55,596
+Or accept the ceiling and buy more machines.
+
+11
+00:00:55,596 --> 00:00:58,123
+Virtual threads remove the dilemma.
+
+12
+00:00:59,023 --> 00:01:03,079
+A platform thread maps one-to-one onto an OS thread.
+
+13
+00:01:03,079 --> 00:01:10,334
+A virtual thread is a Java object, scheduled by the JVM onto a small pool of carrier threads.
+
+14
+00:01:10,334 --> 00:01:12,207
+Millions onto a handful.
+
+15
+00:01:12,657 --> 00:01:15,021
+The key operation is unmounting.
+
+16
+00:01:15,021 --> 00:01:23,665
+When a virtual thread blocks on something the JDK understands, like a socket read, sleep, a lock or a blocking queue,
+
+17
+00:01:24,115 --> 00:01:29,533
+its stack is copied to the heap, and the carrier is released to run another virtual thread.
+
+18
+00:01:29,983 --> 00:01:37,215
+When the data arrives, the stack is copied back onto some carrier, and execution resumes on the very next line.
+
+19
+00:01:37,665 --> 00:01:40,876
+From the code's point of view, nothing happened.
+
+20
+00:01:40,876 --> 00:01:43,217
+The read just blocked and returned.
+
+21
+00:01:43,217 --> 00:01:47,564
+That's the whole design goal: blocking syntax, non-blocking cost.
+
+22
+00:01:48,464 --> 00:01:49,833
+Here's what changes.
+
+23
+00:01:49,833 --> 00:01:54,900
+A platform thread is an OS thread with about a megabyte of reserved stack.
+
+24
+00:01:54,900 --> 00:01:59,966
+A virtual thread is a heap object whose stack grows and shrinks as needed.
+
+25
+00:01:59,966 --> 00:02:05,375
+Creating one is sub-microsecond, so you can have millions instead of thousands.
+
+26
+00:02:05,375 --> 00:02:10,099
+Pooling, essential for platform threads, is harmful for virtual ones.
+
+27
+00:02:10,099 --> 00:02:13,317
+And for CPU-bound work, nothing changes at all.
+
+28
+00:02:14,217 --> 00:02:17,321
+Here's the dispatcher with virtual threads.
+
+29
+00:02:17,321 --> 00:02:21,434
+newVirtualThreadPerTaskExecutor, in a try-with-resources.
+
+30
+00:02:21,434 --> 00:02:26,197
+Ten thousand orders means ten thousand concurrent virtual threads.
+
+31
+00:02:26,197 --> 00:02:28,795
+The blocking send call is unchanged.
+
+32
+00:02:28,795 --> 00:02:33,631
+And close waits for every task, so the method doesn't return early.
+
+33
+00:02:34,081 --> 00:02:36,110
+That executor isn't a pool.
+
+34
+00:02:36,110 --> 00:02:40,319
+It creates a virtual thread per task and throws it away.
+
+35
+00:02:40,319 --> 00:02:43,701
+Same code, same stack traces, same try-catch.
+
+36
+00:02:43,701 --> 00:02:47,158
+The waiting just no longer holds an OS thread.
+
+37
+00:02:48,058 --> 00:02:49,825
+Mistake one: pooling them.
+
+38
+00:02:49,825 --> 00:02:57,302
+A fixed pool of two hundred virtual threads caps concurrency at two hundred, whatever the threads are made of.
+
+39
+00:02:57,302 --> 00:03:02,671
+Pooling exists because platform threads are expensive, and virtual ones aren't.
+
+40
+00:03:03,121 --> 00:03:05,467
+Pool the scarce resource instead.
+
+41
+00:03:05,467 --> 00:03:10,585
+If the vendor tolerates fifty concurrent calls, say so with a semaphore.
+
+42
+00:03:10,585 --> 00:03:18,545
+Ten thousand virtual threads exist, fifty are in the call, and the rest wait on the semaphore at almost no cost.
+
+43
+00:03:19,445 --> 00:03:22,179
+Mistake two: expecting a linear speedup.
+
+44
+00:03:22,179 --> 00:03:27,372
+Virtual threads remove the thread ceiling and expose whatever was behind it.
+
+45
+00:03:27,372 --> 00:03:31,062
+A connection pool of twenty still runs twenty queries.
+
+46
+00:03:31,062 --> 00:03:33,590
+The other threads just queue cheaply.
+
+47
+00:03:33,590 --> 00:03:37,280
+Throughput is bounded by your slowest shared resource.
+
+48
+00:03:37,730 --> 00:03:39,512
+Mistake three: ThreadLocal.
+
+49
+00:03:39,512 --> 00:03:45,453
+An eight-kilobyte buffer per thread was one and a half megabytes with two hundred threads.
+
+50
+00:03:45,453 --> 00:03:48,886
+With a million virtual threads it's eight gigabytes.
+
+51
+00:03:48,886 --> 00:03:55,223
+ThreadLocal still works, but audit anything heavy, and prefer scoped values for request context.
+
+52
+00:03:55,673 --> 00:03:57,853
+Mistake four: CPU-bound work.
+
+53
+00:03:57,853 --> 00:04:01,535
+Virtual threads multiplex waiting, not computing.
+
+54
+00:04:01,535 --> 00:04:06,420
+Ten thousand of them doing arithmetic still share the same cores.
+
+55
+00:04:06,420 --> 00:04:09,126
+Ask: is the task waiting or working?
+
+56
+00:04:09,126 --> 00:04:11,831
+Waiting scales with virtual threads.
+
+57
+00:04:11,831 --> 00:04:13,785
+Working scales with cores.
+
+58
+00:04:14,685 --> 00:04:19,490
+A pinned virtual thread blocks its carrier instead of unmounting.
+
+59
+00:04:19,490 --> 00:04:24,813
+And with only a few carriers, a few pinned threads can stall everything.
+
+60
+00:04:24,813 --> 00:04:29,618
+On Java 21 to 23, the big cause was blocking inside synchronized.
+
+61
+00:04:29,618 --> 00:04:36,936
+Java 24 fixed that, so the old advice to replace synchronized with ReentrantLock is obsolete there.
+
+62
+00:04:37,386 --> 00:04:39,605
+Object dot wait was fixed too.
+
+63
+00:04:40,055 --> 00:04:42,956
+Native frames from JNI calls still pin.
+
+64
+00:04:43,406 --> 00:04:46,393
+And so does blocking during class initialisation.
+
+65
+00:04:46,843 --> 00:04:52,923
+To find pinning, record with Java Flight Recorder and print the VirtualThreadPinned events.
+
+66
+00:04:53,823 --> 00:05:03,462
+Under the hood, virtual threads run on their own FIFO ForkJoinPool, separate from the common pool, with one carrier per core by default.
+
+67
+00:05:03,462 --> 00:05:06,580
+The defaults are right for nearly every app.
+
+68
+00:05:07,030 --> 00:05:09,962
+A virtual thread's stack lives on the heap.
+
+69
+00:05:09,962 --> 00:05:15,213
+Blocking freezes live frames into a heap chunk, and resuming thaws them back.
+
+70
+00:05:15,213 --> 00:05:20,531
+So shallow tasks cost a few hundred bytes, and stacks are garbage-collectable.
+
+71
+00:05:20,531 --> 00:05:25,441
+But deep recursion in a task that blocks often costs more than it looks.
+
+72
+00:05:25,891 --> 00:05:28,887
+And jstack doesn't show virtual threads.
+
+73
+00:05:28,887 --> 00:05:38,627
+Use jcmd Thread dot dump to file, in JSON format, which also groups threads by the structured concurrency scope that created them.
+
+74
+00:05:39,527 --> 00:05:40,698
+Production rules.
+
+75
+00:05:40,698 --> 00:05:44,005
+Use the per-task executor in try-with-resources.
+
+76
+00:05:44,005 --> 00:05:45,796
+Write plain blocking code.
+
+77
+00:05:45,796 --> 00:05:48,759
+Limit the scarce resource with a semaphore.
+
+78
+00:05:48,759 --> 00:05:52,204
+Audit heavy ThreadLocals and prefer scoped values.
+
+79
+00:05:52,204 --> 00:05:54,822
+Keep CPU-bound work on platform pools.
+
+80
+00:05:54,822 --> 00:06:01,436
+And review your connection pools and downstream limits, because they become the visible ceiling.
+
+81
+00:06:01,886 --> 00:06:03,835
+Never pool virtual threads.
+
+82
+00:06:03,835 --> 00:06:07,515
+Never use ThreadLocal as a cache for large objects.
+
+83
+00:06:07,515 --> 00:06:12,712
+Never assume a throughput win without checking what actually limits you.
+
+84
+00:06:12,712 --> 00:06:15,671
+Never use them for CPU-bound parallelism.
+
+85
+00:06:15,671 --> 00:06:22,238
+And don't carry Java 21 pinning workarounds into Java 24 without knowing why they're there.
+
+86
+00:06:23,138 --> 00:06:23,756
+To recap.
+
+87
+00:06:23,756 --> 00:06:31,167
+Virtual threads give you blocking code at non-blocking cost, by moving the stack to the heap while it waits.
+
+88
+00:06:31,167 --> 00:06:36,108
+Never pool them, and limit the scarce resource with a semaphore instead.
+
+89
+00:06:36,108 --> 00:06:39,882
+They expose your real bottleneck, usually the database.
+
+90
+00:06:39,882 --> 00:06:42,215
+Waiting scales, computing doesn't.
+
+91
+00:06:42,215 --> 00:06:45,303
+And synchronized pinning is fixed in Java 24.
+
+92
+00:06:45,753 --> 00:06:48,987
+Next is chapter thirty-two: structured concurrency.
+
+93
+00:06:48,987 --> 00:06:50,255
+Thanks for watching.

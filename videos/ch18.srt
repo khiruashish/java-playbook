@@ -1,0 +1,355 @@
+1
+00:00:00,600 --> 00:00:03,881
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,881 --> 00:00:06,744
+This is chapter eighteen: list internals.
+
+3
+00:00:07,194 --> 00:00:10,817
+List is the collection you reach for without thinking.
+
+4
+00:00:10,817 --> 00:00:14,640
+That reflex is usually right, and occasionally expensive.
+
+5
+00:00:14,640 --> 00:00:23,898
+Let's look at how ArrayList really grows, why LinkedList loses benchmarks it should win on paper, and which list-like views will bite you.
+
+6
+00:00:24,798 --> 00:00:29,335
+The distinction that predicts performance isn't array versus nodes.
+
+7
+00:00:29,335 --> 00:00:31,570
+It's contiguous versus scattered.
+
+8
+00:00:31,570 --> 00:00:39,561
+An ArrayList keeps its element references in one block of memory, so walking it streams cleanly through the CPU cache.
+
+9
+00:00:40,011 --> 00:00:45,898
+A LinkedList allocates a separate Node object for every element, scattered across the heap.
+
+10
+00:00:45,898 --> 00:00:47,904
+Every step can be a cache miss.
+
+11
+00:00:48,354 --> 00:00:58,551
+For a million elements, that's around five megabytes of overhead for ArrayList, and around twenty-four for LinkedList, spread over a million objects.
+
+12
+00:00:59,001 --> 00:01:03,945
+So LinkedList loses even where the complexity table says it should win.
+
+13
+00:01:03,945 --> 00:01:10,073
+Use ArrayList by default, ArrayDeque for queues and stacks, and LinkedList almost never.
+
+14
+00:01:10,973 --> 00:01:14,231
+Inside, ArrayList is just an array and a size.
+
+15
+00:01:14,231 --> 00:01:18,622
+A default ArrayList doesn't even allocate until the first add.
+
+16
+00:01:18,622 --> 00:01:23,084
+It shares a static empty array, so empty lists are nearly free.
+
+17
+00:01:23,084 --> 00:01:26,696
+When it fills up, it grows by one and a half times.
+
+18
+00:01:27,146 --> 00:01:31,912
+So capacity walks ten, fifteen, twenty-two, thirty-three, and so on.
+
+19
+00:01:31,912 --> 00:01:38,431
+One and a half wastes less memory than doubling, and lets the allocator reuse earlier blocks.
+
+20
+00:01:38,881 --> 00:01:43,772
+Reaching a thousand elements takes twelve grow-and-copy operations.
+
+21
+00:01:43,772 --> 00:01:45,961
+Sizing it up front takes zero.
+
+22
+00:01:45,961 --> 00:01:51,654
+And a trap: passing zero to save memory gives the worst growth profile of all.
+
+23
+00:01:51,654 --> 00:01:53,260
+Zero, one, two, three.
+
+24
+00:01:54,160 --> 00:01:58,099
+Inserting in the middle is O of n, but that's misleading.
+
+25
+00:01:58,099 --> 00:02:00,517
+It's a single System dot arraycopy.
+
+26
+00:02:00,967 --> 00:02:06,087
+And arraycopy is a JIT intrinsic, compiled to a vectorised memory move.
+
+27
+00:02:06,087 --> 00:02:15,389
+Shifting ten thousand references takes microseconds, which often beats a LinkedList that first has to walk to the right position.
+
+28
+00:02:15,839 --> 00:02:20,436
+Removal nulls out the vacated slot so the element can be collected.
+
+29
+00:02:20,436 --> 00:02:22,837
+But the array itself never shrinks.
+
+30
+00:02:22,837 --> 00:02:28,532
+A list that peaked at a million entries keeps that array until you call trimToSize.
+
+31
+00:02:28,982 --> 00:02:32,896
+And every structural change increments a modCount field.
+
+32
+00:02:32,896 --> 00:02:39,186
+Iterators compare it on each step and throw ConcurrentModificationException if it changed.
+
+33
+00:02:39,186 --> 00:02:42,681
+That's best-effort bug detection, not a guarantee.
+
+34
+00:02:42,681 --> 00:02:48,971
+Set doesn't count as structural, which is why replacing elements during iteration is fine.
+
+35
+00:02:49,871 --> 00:02:53,392
+To remove every out-of-stock line, use removeIf.
+
+36
+00:02:53,392 --> 00:02:54,053
+One pass.
+
+37
+00:02:54,503 --> 00:02:57,815
+The loop version calls remove inside a for-each.
+
+38
+00:02:57,815 --> 00:03:06,855
+It shifts the tail on every removal, which is quadratic, and it breaks the iterator with a ConcurrentModificationException besides.
+
+39
+00:03:07,305 --> 00:03:13,257
+removeIf marks the doomed indices in a bit set, then compacts the array in a single copy.
+
+40
+00:03:14,157 --> 00:03:14,954
+Three traps.
+
+41
+00:03:14,954 --> 00:03:19,736
+First, subList returns a live view that holds a reference to its parent.
+
+42
+00:03:19,736 --> 00:03:25,848
+Store ten elements from a million-element list, and the whole backing array stays reachable.
+
+43
+00:03:25,848 --> 00:03:29,567
+And any structural change to the parent breaks the view.
+
+44
+00:03:29,567 --> 00:03:34,018
+Treat subList as short-lived, and copy it if it escapes the method.
+
+45
+00:03:34,468 --> 00:03:36,540
+Second, the remove overload.
+
+46
+00:03:36,540 --> 00:03:42,460
+On a list of Integer, remove with an int literal removes by index, not by value.
+
+47
+00:03:42,460 --> 00:03:45,346
+To remove the value, box it explicitly.
+
+48
+00:03:45,346 --> 00:03:49,935
+This is the most common List bug in code that stores Integers.
+
+49
+00:03:50,385 --> 00:03:53,487
+Third, Arrays dot asList isn't an ArrayList.
+
+50
+00:03:53,487 --> 00:03:56,166
+It's a fixed-size view over the array.
+
+51
+00:03:56,166 --> 00:03:58,705
+Set works, but add and remove throw.
+
+52
+00:03:59,605 --> 00:04:02,540
+Here's the whole family in one table.
+
+53
+00:04:02,540 --> 00:04:05,238
+A new ArrayList is a mutable copy.
+
+54
+00:04:05,238 --> 00:04:09,523
+List dot of and copyOf are immutable and reject nulls.
+
+55
+00:04:09,523 --> 00:04:13,569
+Stream dot toList is unmodifiable but allows nulls.
+
+56
+00:04:13,569 --> 00:04:22,218
+Arrays dot asList, unmodifiableList, subList and Java 21's reversed are all views, connected to the original.
+
+57
+00:04:22,668 --> 00:04:25,592
+So from an accessor, return List dot copyOf.
+
+58
+00:04:25,592 --> 00:04:31,308
+A view stops callers writing, but still leaks your later changes into their reference.
+
+59
+00:04:32,208 --> 00:04:39,628
+Writing your own ArrayList is a standard interview exercise, and the quickest way to understand the real one.
+
+60
+00:04:39,628 --> 00:04:42,146
+The key points: capacity is not size.
+
+61
+00:04:42,146 --> 00:04:43,984
+There are two range checks.
+
+62
+00:04:43,984 --> 00:04:48,273
+Inserting at size is a legal append, but reading at size isn't.
+
+63
+00:04:48,273 --> 00:04:53,514
+Removal shifts the tail and nulls the vacated slot for the garbage collector.
+
+64
+00:04:53,514 --> 00:04:58,960
+And grow uses the same one-and-a-half factor, with a fallback for zero capacity.
+
+65
+00:04:59,860 --> 00:05:05,417
+Here's what separates I wrote a dynamic array from I understand the JDK class.
+
+66
+00:05:05,417 --> 00:05:11,401
+The real one implements List and RandomAccess, so the whole ecosystem works with it.
+
+67
+00:05:11,851 --> 00:05:15,329
+Its iterators are fail-fast, using modCount.
+
+68
+00:05:15,779 --> 00:05:21,880
+It has subList views, bidirectional list iterators, and a spliterator for parallel streams.
+
+69
+00:05:22,330 --> 00:05:25,658
+removeIf uses a bit set for a single-pass removal.
+
+70
+00:05:26,108 --> 00:05:37,052
+And a nice detail: elementData is transient, with a hand-written writeObject that serializes only the elements in use, not the empty tail of the array.
+
+71
+00:05:37,952 --> 00:05:39,152
+Production rules.
+
+72
+00:05:39,152 --> 00:05:41,835
+Size the list when you know the count.
+
+73
+00:05:41,835 --> 00:05:45,224
+Default to ArrayList, and ArrayDeque for queues.
+
+74
+00:05:45,224 --> 00:05:47,837
+Use removeIf for conditional removal.
+
+75
+00:05:47,837 --> 00:05:50,520
+Return List dot copyOf from accessors.
+
+76
+00:05:50,520 --> 00:05:52,285
+Prefer stream dot toList.
+
+77
+00:05:52,285 --> 00:05:54,827
+And trim lists that shrank for good.
+
+78
+00:05:55,277 --> 00:05:56,839
+Never store a subList.
+
+79
+00:05:56,839 --> 00:06:03,372
+Never call remove with an int on a list of Integer without deciding which overload you mean.
+
+80
+00:06:03,372 --> 00:06:06,426
+Never index a LinkedList in a counted loop.
+
+81
+00:06:06,426 --> 00:06:11,823
+Don't treat Arrays dot asList as mutable, or unmodifiableList as a snapshot.
+
+82
+00:06:11,823 --> 00:06:16,226
+And never share a list across threads without synchronisation.
+
+83
+00:06:17,126 --> 00:06:17,808
+To recap.
+
+84
+00:06:17,808 --> 00:06:23,036
+Contiguous memory beats scattered nodes, so use ArrayList by default.
+
+85
+00:06:23,036 --> 00:06:28,265
+It grows by one and a half times, so size it when you know the count.
+
+86
+00:06:28,265 --> 00:06:31,977
+arraycopy makes O of n inserts cheap in practice.
+
+87
+00:06:31,977 --> 00:06:37,585
+And subList, Arrays dot asList and unmodifiableList are views, not copies.
+
+88
+00:06:38,035 --> 00:06:41,159
+Next is chapter nineteen, HashMap internals.
+
+89
+00:06:41,159 --> 00:06:42,579
+Thanks for watching.

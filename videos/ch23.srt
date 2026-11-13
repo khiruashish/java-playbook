@@ -1,0 +1,359 @@
+1
+00:00:00,600 --> 00:00:03,918
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,918 --> 00:00:08,365
+This is chapter twenty-three: equals, hashCode and comparators.
+
+3
+00:00:08,815 --> 00:00:17,263
+Every hash-based and sorted collection is built on four methods you write yourself: equals, hashCode, compareTo and compare.
+
+4
+00:00:17,263 --> 00:00:19,851
+The collections trust them completely.
+
+5
+00:00:19,851 --> 00:00:23,121
+When they break their contracts, nothing throws.
+
+6
+00:00:23,121 --> 00:00:29,253
+Entries are silently lost, duplicated or dropped, and the bug shows up far from its cause.
+
+7
+00:00:30,153 --> 00:00:34,643
+Four failures, all from collections working exactly as designed.
+
+8
+00:00:34,643 --> 00:00:39,766
+Override equals but not hashCode, and a HashSet keeps two identical SKUs.
+
+9
+00:00:39,766 --> 00:00:46,011
+Put the same two BigDecimals in a HashSet and a TreeSet, and you get two different sizes.
+
+10
+00:00:46,011 --> 00:00:50,501
+A comparator written with subtraction overflows on large values.
+
+11
+00:00:50,501 --> 00:00:53,308
+And a mutated map key strands its entry.
+
+12
+00:00:53,308 --> 00:00:54,782
+None of these throws.
+
+13
+00:00:54,782 --> 00:00:56,606
+Each has a one-line cause.
+
+14
+00:00:57,506 --> 00:01:01,098
+Here's the fact that explains the BigDecimal result.
+
+15
+00:01:01,098 --> 00:01:07,661
+Hash collections use two methods: hashCode to find the bucket, then equals to find the element.
+
+16
+00:01:08,111 --> 00:01:12,562
+Sorted collections use only one: compareTo, or your comparator.
+
+17
+00:01:12,562 --> 00:01:14,681
+They never call equals at all.
+
+18
+00:01:15,131 --> 00:01:22,068
+And BigDecimal one point zero equals one point zero zero is false, because their scale differs.
+
+19
+00:01:22,068 --> 00:01:24,477
+But compareTo says they're equal.
+
+20
+00:01:24,477 --> 00:01:28,785
+So the HashSet sees two elements, and the TreeSet sees one.
+
+21
+00:01:29,685 --> 00:01:34,854
+The one rule that breaks things: equal objects must have equal hash codes.
+
+22
+00:01:34,854 --> 00:01:36,042
+That's mandatory.
+
+23
+00:01:36,492 --> 00:01:39,849
+compareTo returning zero should agree with equals.
+
+24
+00:01:39,849 --> 00:01:41,730
+That's strongly recommended.
+
+25
+00:01:41,730 --> 00:01:46,497
+When it doesn't, hash and sorted collections disagree, like BigDecimal.
+
+26
+00:01:46,947 --> 00:01:49,136
+But the converse isn't required.
+
+27
+00:01:49,136 --> 00:01:51,735
+Unequal objects can share a hash code.
+
+28
+00:01:51,735 --> 00:01:55,566
+That's just a collision, which every hash table handles.
+
+29
+00:01:56,016 --> 00:02:02,776
+equals must be reflexive, symmetric, transitive and consistent, and equals of null is false.
+
+30
+00:02:02,776 --> 00:02:06,524
+Use exactly the same fields in equals and hashCode.
+
+31
+00:02:06,524 --> 00:02:10,565
+And for compareTo, only the sign of the result matters.
+
+32
+00:02:11,465 --> 00:02:15,074
+If you hand-write equals, use the instanceof pattern.
+
+33
+00:02:15,074 --> 00:02:20,726
+Null never matches a type pattern, so you get the null check and the cast for free.
+
+34
+00:02:20,726 --> 00:02:23,177
+And use the same fields in hashCode.
+
+35
+00:02:23,627 --> 00:02:26,976
+But for value types, the better answer is a record.
+
+36
+00:02:26,976 --> 00:02:34,068
+It generates both methods from the same components, so they can never drift apart when someone adds a field.
+
+37
+00:02:34,068 --> 00:02:37,942
+Hand-written equals should be the exception, with a reason.
+
+38
+00:02:38,842 --> 00:02:40,799
+Here's the inheritance trap.
+
+39
+00:02:40,799 --> 00:02:42,407
+Money compares amounts.
+
+40
+00:02:42,407 --> 00:02:45,972
+TaxedMoney extends it and also compares a tax code.
+
+41
+00:02:45,972 --> 00:02:50,445
+Now plain equals taxed is true, but taxed equals plain is false.
+
+42
+00:02:50,445 --> 00:02:57,295
+Symmetry is broken, and whether a collection finds the object depends on which equals gets called.
+
+43
+00:02:57,745 --> 00:03:04,111
+There's no way to extend an instantiable class, add a value component, and keep the contract.
+
+44
+00:03:04,111 --> 00:03:05,754
+Use composition instead.
+
+45
+00:03:05,754 --> 00:03:09,793
+A getClass check is symmetric, but breaks substitutability.
+
+46
+00:03:09,793 --> 00:03:13,489
+Or make the class final, which records are by default.
+
+47
+00:03:14,389 --> 00:03:17,492
+Never compute a comparison by subtraction.
+
+48
+00:03:17,492 --> 00:03:23,107
+Subtract a negative from three billion paise, cast to int, and it overflows.
+
+49
+00:03:23,107 --> 00:03:26,801
+The sign flips, and the biggest order sorts first.
+
+50
+00:03:26,801 --> 00:03:31,455
+It passes every test with small numbers and fails on real data.
+
+51
+00:03:31,455 --> 00:03:34,336
+Use comparingLong, or Long dot compare.
+
+52
+00:03:34,786 --> 00:03:37,287
+And fix BigDecimal at the boundary.
+
+53
+00:03:37,287 --> 00:03:50,935
+Normalise the scale in the record's compact constructor, so equals and compareTo always agree, and a map keyed by price doesn't treat ten point zero and ten point zero zero as different keys.
+
+54
+00:03:51,835 --> 00:03:55,488
+Compose comparators with comparing and thenComparing.
+
+55
+00:03:55,488 --> 00:03:57,004
+Careful with reversed.
+
+56
+00:03:57,004 --> 00:04:01,070
+It reverses everything built so far, not just the last key.
+
+57
+00:04:01,070 --> 00:04:05,274
+Put it at the end of the chain and you've reversed every key.
+
+58
+00:04:05,274 --> 00:04:09,478
+To reverse just one, pass reverseOrder to that thenComparing.
+
+59
+00:04:09,928 --> 00:04:15,930
+And always end with a unique tie-breaker, like the order ID, so the order is total.
+
+60
+00:04:15,930 --> 00:04:16,726
+Here's why.
+
+61
+00:04:16,726 --> 00:04:21,065
+A TreeSet uses the comparator as its definition of equality.
+
+62
+00:04:21,065 --> 00:04:28,296
+Two orders with the same priority are the same element to it, so the second add is silently dropped.
+
+63
+00:04:29,196 --> 00:04:30,311
+Three internals.
+
+64
+00:04:30,311 --> 00:04:35,885
+HashMap compares the cached hashes first, and only calls equals on a hash match.
+
+65
+00:04:35,885 --> 00:04:45,431
+So without a hashCode override, two equal keys get different identity hashes, land in different buckets, and equals is never even called.
+
+66
+00:04:45,881 --> 00:04:54,207
+Objects dot hash is convenient but takes varargs, so it allocates an array and boxes primitives on every call.
+
+67
+00:04:54,207 --> 00:05:00,793
+For hot keys, hand-roll it, or use a record, whose generated hashCode avoids the array.
+
+68
+00:05:01,243 --> 00:05:04,119
+And keep doubles and arrays out of keys.
+
+69
+00:05:04,119 --> 00:05:13,540
+Double's equals treats NaN as equal to itself and zero as different from negative zero, the opposite of the double-equals operator.
+
+70
+00:05:13,540 --> 00:05:19,653
+Arrays compare by identity, which also silently breaks records with array components.
+
+71
+00:05:20,553 --> 00:05:21,772
+Production rules.
+
+72
+00:05:21,772 --> 00:05:23,780
+Use records for value types.
+
+73
+00:05:23,780 --> 00:05:30,736
+If you hand-write equals, write hashCode too, with the same fields, using the instanceof pattern.
+
+74
+00:05:30,736 --> 00:05:33,963
+Prefer composition to inheritance for values.
+
+75
+00:05:33,963 --> 00:05:35,899
+Normalise BigDecimal scale.
+
+76
+00:05:35,899 --> 00:05:40,991
+And build comparators with comparing, ending with a unique tie-breaker.
+
+77
+00:05:41,441 --> 00:05:44,338
+Never override equals without hashCode.
+
+78
+00:05:44,338 --> 00:05:46,492
+Never compare by subtraction.
+
+79
+00:05:46,492 --> 00:05:49,834
+Never extend a value class and add to equals.
+
+80
+00:05:49,834 --> 00:05:52,286
+Never use or mutate mutable keys.
+
+81
+00:05:52,286 --> 00:05:54,960
+Keep doubles and arrays out of keys.
+
+82
+00:05:54,960 --> 00:06:01,942
+And never assume a TreeSet and a HashSet agree, unless the ordering is consistent with equals.
+
+83
+00:06:02,842 --> 00:06:03,483
+To recap.
+
+84
+00:06:03,483 --> 00:06:09,465
+Hash collections use hashCode and equals, while sorted collections use only compare.
+
+85
+00:06:09,465 --> 00:06:12,385
+Equal objects must have equal hash codes.
+
+86
+00:06:12,385 --> 00:06:16,018
+Records generate both methods, so they can't drift.
+
+87
+00:06:16,018 --> 00:06:21,573
+Use Long dot compare, never subtraction, and make orderings total for TreeSet.
+
+88
+00:06:22,023 --> 00:06:25,423
+That completes the Collections section of the handbook.
+
+89
+00:06:25,423 --> 00:06:26,845
+Next comes concurrency.
+
+90
+00:06:26,845 --> 00:06:28,081
+Thanks for watching.

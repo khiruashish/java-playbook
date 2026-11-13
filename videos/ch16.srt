@@ -1,0 +1,407 @@
+1
+00:00:00,600 --> 00:00:03,931
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,931 --> 00:00:06,979
+This is chapter sixteen: generics in depth.
+
+3
+00:00:07,429 --> 00:00:13,428
+Most developers use generics fluently for years without learning the model underneath.
+
+4
+00:00:13,428 --> 00:00:15,869
+That's fine until you write an API.
+
+5
+00:00:15,869 --> 00:00:18,520
+Then the questions arrive all at once.
+
+6
+00:00:18,520 --> 00:00:21,729
+Why isn't a list of strings a list of objects?
+
+7
+00:00:21,729 --> 00:00:23,612
+Why is new T array illegal?
+
+8
+00:00:23,612 --> 00:00:25,007
+And what is capture?
+
+9
+00:00:25,907 --> 00:00:29,506
+Before generics, every collection was a bag of Object.
+
+10
+00:00:29,506 --> 00:00:40,435
+You cast on every read, and when someone added the wrong type, the ClassCastException surfaced at the get, possibly in a different class, far from the real mistake.
+
+11
+00:00:40,885 --> 00:00:46,929
+Generics moved the check to compile time, right at the mistake, and removed the casts.
+
+12
+00:00:46,929 --> 00:00:52,060
+But Java 5 had to stay binary compatible with existing libraries and VMs.
+
+13
+00:00:52,060 --> 00:00:58,315
+That constraint produced erasure, and erasure produced every restriction in this chapter.
+
+14
+00:00:59,215 --> 00:01:00,182
+Here's erasure.
+
+15
+00:01:00,182 --> 00:01:01,860
+You write a List of Order.
+
+16
+00:01:02,310 --> 00:01:04,571
+The compiler checks every use of it.
+
+17
+00:01:05,021 --> 00:01:07,802
+Then it throws the type arguments away.
+
+18
+00:01:07,802 --> 00:01:12,723
+List of Order becomes plain List, and T becomes Object, or its bound.
+
+19
+00:01:13,173 --> 00:01:16,239
+And it inserts casts wherever you read a value.
+
+20
+00:01:16,239 --> 00:01:21,002
+So at runtime, a list of strings and a list of orders are the same class.
+
+21
+00:01:21,452 --> 00:01:23,309
+Every restriction follows.
+
+22
+00:01:23,309 --> 00:01:28,738
+You can't write new T, or a new T array, because there's no type at runtime.
+
+23
+00:01:28,738 --> 00:01:31,809
+You can't test instanceof a List of String.
+
+24
+00:01:31,809 --> 00:01:37,952
+A static field can't be of type T, because one class is shared by every instantiation.
+
+25
+00:01:37,952 --> 00:01:42,167
+And two overloads that differ only in type arguments clash.
+
+26
+00:01:43,067 --> 00:01:44,605
+Generics are invariant.
+
+27
+00:01:44,605 --> 00:01:49,419
+A List of Order is not a List of Object, even though Order is an Object.
+
+28
+00:01:49,419 --> 00:01:50,155
+Here's why.
+
+29
+00:01:50,155 --> 00:01:56,976
+If you could assign it, you could add a string through the object view, and poison the list of orders.
+
+30
+00:01:57,426 --> 00:02:00,272
+So invariance is what makes generics safe.
+
+31
+00:02:00,272 --> 00:02:05,490
+And wildcards are how you get flexibility back without giving up that safety.
+
+32
+00:02:06,390 --> 00:02:11,172
+The rule for wildcards is PECS: producer extends, consumer super.
+
+33
+00:02:11,172 --> 00:02:16,763
+A parameter you read from is a producer, so give it question mark extends T.
+
+34
+00:02:16,763 --> 00:02:22,134
+A parameter you write to is a consumer, so give it question mark super T.
+
+35
+00:02:22,584 --> 00:02:24,958
+The payoff is at the call site.
+
+36
+00:02:24,958 --> 00:02:30,089
+Sum reads cart lines, so it accepts a list of any CartLine subtype.
+
+37
+00:02:30,089 --> 00:02:35,832
+collectSkus writes SKUs, so it accepts a list of Object as its destination.
+
+38
+00:02:35,832 --> 00:02:38,819
+Without the wildcards, both calls fail.
+
+39
+00:02:39,269 --> 00:02:42,545
+If you both read and write, use T exactly.
+
+40
+00:02:42,545 --> 00:02:45,042
+The JDK follows this everywhere.
+
+41
+00:02:45,042 --> 00:02:49,957
+Collections dot copy uses both wildcards in a single signature.
+
+42
+00:02:50,857 --> 00:02:53,702
+PECS applies to functional parameters too.
+
+43
+00:02:53,702 --> 00:03:00,478
+Here's a generic Result type: a sealed interface with success and failure records, and a map method.
+
+44
+00:03:00,928 --> 00:03:07,320
+Look at map's parameter: a Function of question mark super T, question mark extends R.
+
+45
+00:03:07,320 --> 00:03:09,996
+The function consumes a T, so super.
+
+46
+00:03:09,996 --> 00:03:12,152
+It produces an R, so extends.
+
+47
+00:03:12,152 --> 00:03:18,916
+That way a function from Object to String is a perfectly good mapper for a Result of Order.
+
+48
+00:03:18,916 --> 00:03:22,112
+Every map in the JDK is declared like this.
+
+49
+00:03:23,012 --> 00:03:25,010
+Arrays and generics disagree.
+
+50
+00:03:25,010 --> 00:03:33,829
+Arrays are covariant, so an Order array can be viewed as an Object array, and storing a string compiles, then throws at runtime.
+
+51
+00:03:33,829 --> 00:03:36,791
+Generics chose compile-time safety instead.
+
+52
+00:03:36,791 --> 00:03:38,583
+So new T array is illegal.
+
+53
+00:03:38,583 --> 00:03:47,402
+The workaround is casting an Object array, which is what ArrayList does internally, but only in a private field, never returned.
+
+54
+00:03:47,402 --> 00:03:49,124
+Usually, just use a List.
+
+55
+00:03:49,574 --> 00:03:56,200
+Varargs of T create exactly such an array, which is why the compiler warns about heap pollution.
+
+56
+00:03:56,200 --> 00:03:59,376
+SafeVarargs suppresses it, but it's a promise.
+
+57
+00:03:59,376 --> 00:04:05,105
+If the array escapes, like returning it here, the caller gets a ClassCastException.
+
+58
+00:04:06,005 --> 00:04:10,743
+Because of erasure, a method can't know its own T unless you pass it.
+
+59
+00:04:10,743 --> 00:04:14,794
+A Class of T works for simple types, like reading a Config.
+
+60
+00:04:15,244 --> 00:04:18,314
+But List dot class loses its type argument.
+
+61
+00:04:18,314 --> 00:04:20,884
+So libraries use a super type token.
+
+62
+00:04:20,884 --> 00:04:25,524
+Generic information about a superclass is kept in the class file.
+
+63
+00:04:25,524 --> 00:04:31,949
+Create an anonymous subclass, note the braces, and reflection can read List of Order back.
+
+64
+00:04:31,949 --> 00:04:35,447
+That's exactly how Jackson's TypeReference works.
+
+65
+00:04:36,347 --> 00:04:37,510
+Three internals.
+
+66
+00:04:37,510 --> 00:04:44,051
+Erasure removes type arguments from bytecode, but declarations keep a Signature attribute.
+
+67
+00:04:44,051 --> 00:04:48,412
+So reflection can see that a method returns a List of Order.
+
+68
+00:04:48,412 --> 00:04:52,773
+An instance's type arguments, though, genuinely don't exist.
+
+69
+00:04:53,223 --> 00:04:54,279
+Bridge methods.
+
+70
+00:04:54,279 --> 00:04:58,148
+A Comparator of Order erases to compare of two Objects.
+
+71
+00:04:58,148 --> 00:05:03,284
+So the compiler generates a bridge that casts and calls your real method.
+
+72
+00:05:03,284 --> 00:05:10,461
+That's how polymorphism survives erasure, and why stack traces sometimes show methods you never wrote.
+
+73
+00:05:10,911 --> 00:05:11,729
+And capture.
+
+74
+00:05:11,729 --> 00:05:20,588
+The compiler names each wildcard occurrence separately, so it can't prove that what you read and what you write are the same type.
+
+75
+00:05:20,588 --> 00:05:26,313
+The fix is always to delegate to a generic helper method, which names the type once.
+
+76
+00:05:27,213 --> 00:05:28,420
+Production rules.
+
+77
+00:05:28,420 --> 00:05:30,549
+Apply PECS to every parameter.
+
+78
+00:05:30,549 --> 00:05:38,215
+Use wildcards in parameters, but concrete types in return values, so callers don't inherit capture problems.
+
+79
+00:05:38,215 --> 00:05:41,267
+Only bound T when the bound does real work.
+
+80
+00:05:41,267 --> 00:05:43,609
+Prefer lists over generic arrays.
+
+81
+00:05:43,609 --> 00:05:46,165
+Comment every unchecked suppression.
+
+82
+00:05:46,165 --> 00:05:49,997
+And turn on the raw types and unchecked lint warnings.
+
+83
+00:05:50,447 --> 00:05:51,873
+Never use raw types.
+
+84
+00:05:51,873 --> 00:05:56,007
+They switch off generic checking for the whole expression.
+
+85
+00:05:56,007 --> 00:05:59,570
+Never return a T array built from an Object array.
+
+86
+00:05:59,570 --> 00:06:03,704
+Never overload on signatures that erase to the same thing.
+
+87
+00:06:03,704 --> 00:06:08,907
+Don't put wildcards in field types, or mix arrays and generics in an API.
+
+88
+00:06:08,907 --> 00:06:12,399
+And never use SafeVarargs when the array escapes.
+
+89
+00:06:13,299 --> 00:06:19,486
+Java 5 introduced the whole model: generics, erasure, wildcards and bridge methods.
+
+90
+00:06:19,936 --> 00:06:26,080
+Java 7 added the diamond operator, and Java 9 allowed it on anonymous classes.
+
+91
+00:06:26,530 --> 00:06:32,482
+Java 10's var works with generics, but never with a bare diamond, which infers Object.
+
+92
+00:06:32,932 --> 00:06:39,396
+Records, sealed types and record patterns all work with generics, as the Result example showed.
+
+93
+00:06:39,846 --> 00:06:47,987
+And Project Valhalla is working on value types and specialised generics, which would allow a List of int without boxing.
+
+94
+00:06:47,987 --> 00:06:51,515
+It isn't delivered, and any timeline is speculation.
+
+95
+00:06:52,415 --> 00:06:53,051
+To recap.
+
+96
+00:06:53,051 --> 00:07:01,100
+Erasure means types are checked at compile time, then discarded, and that one decision explains every restriction.
+
+97
+00:07:01,100 --> 00:07:05,830
+Invariance keeps generics safe, and wildcards add flexibility back.
+
+98
+00:07:05,830 --> 00:07:11,408
+Remember PECS: read with extends, write with super, and use T when you do both.
+
+99
+00:07:11,408 --> 00:07:15,221
+And arrays are covariant and unsound, so prefer lists.
+
+100
+00:07:15,671 --> 00:07:17,848
+That completes the Language section.
+
+101
+00:07:17,848 --> 00:07:23,656
+Next is the Collections section, starting with chapter seventeen: choosing the right collection.
+
+102
+00:07:23,656 --> 00:07:24,865
+Thanks for watching.

@@ -1,0 +1,507 @@
+1
+00:00:00,600 --> 00:00:04,470
+Welcome back to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,470 --> 00:00:07,299
+This is chapter seven: the Stream API.
+
+3
+00:00:07,749 --> 00:00:11,949
+Streams are the most used, and most misused, part of Java 8.
+
+4
+00:00:11,949 --> 00:00:15,660
+The API is easy to learn, but the mental model isn't.
+
+5
+00:00:15,660 --> 00:00:23,081
+Get it wrong and you write pipelines that are slower than the loop they replaced, or that nobody can read.
+
+6
+00:00:23,081 --> 00:00:25,391
+Let's fix the mental model first.
+
+7
+00:00:26,291 --> 00:00:31,617
+Here's the task: total the value of perishable cart lines, grouped by vendor.
+
+8
+00:00:31,617 --> 00:00:37,151
+In Java 7, that's a loop with a continue, a map lookup, a null check, and a put.
+
+9
+00:00:37,151 --> 00:00:41,439
+Only two ideas matter, filter to perishable and sum by vendor.
+
+10
+00:00:41,439 --> 00:00:46,558
+Everything else is mechanics, and every line is a place to make a mistake.
+
+11
+00:00:47,008 --> 00:00:54,116
+The stream version states those two ideas directly: filter, then group by vendor and add up the totals.
+
+12
+00:00:54,116 --> 00:00:55,910
+The win isn't fewer lines.
+
+13
+00:00:55,910 --> 00:00:59,360
+It's that the what is visible and the how is gone.
+
+14
+00:01:00,260 --> 00:01:02,207
+A stream is not a collection.
+
+15
+00:01:02,207 --> 00:01:04,087
+It's a pipeline description.
+
+16
+00:01:04,087 --> 00:01:08,921
+It starts with a source: a collection, an array, a generator, or a file.
+
+17
+00:01:09,371 --> 00:01:13,789
+Then come intermediate operations, like filter, map and sorted.
+
+18
+00:01:13,789 --> 00:01:14,841
+These are lazy.
+
+19
+00:01:14,841 --> 00:01:17,715
+Calling them just builds up the pipeline.
+
+20
+00:01:17,715 --> 00:01:18,907
+Nothing runs yet.
+
+21
+00:01:19,357 --> 00:01:27,165
+Nothing happens until a terminal operation, like collect, reduce or forEach, pulls elements through the whole pipeline.
+
+22
+00:01:27,615 --> 00:01:31,071
+So compared with a collection, a stream stores nothing.
+
+23
+00:01:31,521 --> 00:01:32,828
+It can't be reused.
+
+24
+00:01:32,828 --> 00:01:37,644
+Call a second terminal operation and you get an IllegalStateException.
+
+25
+00:01:38,094 --> 00:01:40,846
+It's evaluated lazily, not eagerly.
+
+26
+00:01:41,296 --> 00:01:45,563
+And it can even be infinite, as long as something downstream stops it.
+
+27
+00:01:46,463 --> 00:01:54,573
+The most important idea in this chapter: elements flow through the whole pipeline one at a time, not stage by stage.
+
+28
+00:01:54,573 --> 00:02:01,076
+Here we print what filter sees and what map sees, then ask for the first SKU starting with A.
+
+29
+00:02:01,526 --> 00:02:02,800
+Look at the output.
+
+30
+00:02:02,800 --> 00:02:05,416
+Filter sees milk, then rice, then atta.
+
+31
+00:02:05,416 --> 00:02:08,166
+Atta passes, map sees it, and we're done.
+
+32
+00:02:08,166 --> 00:02:09,106
+Two surprises.
+
+33
+00:02:09,106 --> 00:02:13,331
+Dal is never examined at all, because findFirst short-circuits.
+
+34
+00:02:13,331 --> 00:02:18,228
+And map runs on the third element before filter has even seen the fourth.
+
+35
+00:02:18,228 --> 00:02:23,393
+If you picture filter everything, then map everything, you'd predict neither.
+
+36
+00:02:24,293 --> 00:02:25,947
+A quick tour of the API.
+
+37
+00:02:25,947 --> 00:02:28,565
+Filter, map and flatMap are stateless.
+
+38
+00:02:28,565 --> 00:02:30,977
+Each element is handled on its own.
+
+39
+00:02:30,977 --> 00:02:37,041
+Distinct, sorted and skip are stateful, because they have to remember what they've seen.
+
+40
+00:02:37,041 --> 00:02:41,589
+Limit and takeWhile short-circuit, and peek is for debugging only.
+
+41
+00:02:41,589 --> 00:02:42,554
+We'll see why.
+
+42
+00:02:43,004 --> 00:02:50,201
+On the terminal side, collect and Java 16's toList build collections, and toList is unmodifiable.
+
+43
+00:02:50,201 --> 00:02:52,947
+Reduce and count give a single value.
+
+44
+00:02:52,947 --> 00:02:58,660
+Min, max and findFirst return an Optional, because the stream might be empty.
+
+45
+00:02:58,660 --> 00:03:03,335
+And for numbers, mapToInt then sum avoids boxing every element.
+
+46
+00:03:03,785 --> 00:03:07,820
+One thing to remember: stateful operations break laziness.
+
+47
+00:03:07,820 --> 00:03:13,107
+Sorted has to consume the entire stream before it can emit a single element.
+
+48
+00:03:14,007 --> 00:03:15,328
+Map versus flatMap.
+
+49
+00:03:15,328 --> 00:03:16,927
+Map is one in, one out.
+
+50
+00:03:16,927 --> 00:03:23,530
+Mapping each order to its lines gives you a stream of lists, which usually isn't what you want.
+
+51
+00:03:23,530 --> 00:03:29,508
+FlatMap takes a function that returns a stream, and merges all those streams into one.
+
+52
+00:03:29,508 --> 00:03:34,999
+Now you have a flat stream of order lines you can map to SKUs and de-duplicate.
+
+53
+00:03:35,449 --> 00:03:37,886
+The same trick flattens Optionals.
+
+54
+00:03:37,886 --> 00:03:45,771
+Look up each SKU in the catalogue to get a stream of Optionals, then flatMap with Optional colon colon stream.
+
+55
+00:03:45,771 --> 00:03:47,993
+Empty results simply disappear.
+
+56
+00:03:48,893 --> 00:03:53,267
+Infinite streams are safe as long as something short-circuits.
+
+57
+00:03:53,267 --> 00:03:57,641
+Stream dot generate with a limit of five gives five order IDs.
+
+58
+00:03:57,641 --> 00:04:05,683
+Java 9's three-argument iterate takes a seed, a condition and a step, so the stream ends when the condition fails.
+
+59
+00:04:06,133 --> 00:04:10,768
+TakeWhile is like filter, but it stops at the first element that fails.
+
+60
+00:04:10,768 --> 00:04:18,276
+On a list sorted newest first, filter checks every order, while takeWhile stops at the first order from last month.
+
+61
+00:04:18,276 --> 00:04:19,125
+Much cheaper.
+
+62
+00:04:19,575 --> 00:04:22,146
+But only because the list is sorted.
+
+63
+00:04:22,146 --> 00:04:26,860
+On an unsorted stream, takeWhile silently drops every later match.
+
+64
+00:04:26,860 --> 00:04:29,431
+That's a bug no compiler will catch.
+
+65
+00:04:30,331 --> 00:04:32,909
+Two bugs that tests rarely catch.
+
+66
+00:04:32,909 --> 00:04:34,002
+First, reduce.
+
+67
+00:04:34,002 --> 00:04:40,877
+The identity value must really be an identity: combining it with any x must give back x.
+
+68
+00:04:40,877 --> 00:04:42,674
+Zero with plus is fine.
+
+69
+00:04:42,674 --> 00:04:46,502
+But zero with times returns zero for every input.
+
+70
+00:04:46,502 --> 00:04:47,205
+Silently.
+
+71
+00:04:47,655 --> 00:04:49,669
+Second, Collectors dot toMap.
+
+72
+00:04:49,669 --> 00:04:53,488
+A cart can legitimately have the same SKU on two lines.
+
+73
+00:04:53,488 --> 00:05:01,958
+The two-argument toMap throws an IllegalStateException when that happens, at runtime, on data that's rarely in your tests.
+
+74
+00:05:01,958 --> 00:05:09,318
+Always pass a merge function, here adding the quantities together, unless your keys are guaranteed unique.
+
+75
+00:05:09,318 --> 00:05:14,109
+toMap also throws on null values, which a plain HashMap would accept.
+
+76
+00:05:15,009 --> 00:05:18,855
+Under the hood, every stream is driven by a Spliterator.
+
+77
+00:05:18,855 --> 00:05:23,870
+It traverses elements, and it can split itself in half for parallel work.
+
+78
+00:05:23,870 --> 00:05:30,533
+It also reports characteristics, like sized, ordered and sorted, that let the pipeline skip work.
+
+79
+00:05:30,533 --> 00:05:34,379
+If the source is already sorted, sorted becomes a no-op.
+
+80
+00:05:34,829 --> 00:05:38,539
+Intermediate operations are fused into a single pass.
+
+81
+00:05:38,539 --> 00:05:43,508
+Each element is pushed through every stage before the next one is read.
+
+82
+00:05:43,508 --> 00:05:46,448
+So a three-stage stream isn't three loops.
+
+83
+00:05:46,448 --> 00:05:51,277
+It's one loop with three function calls, which the JIT often inlines.
+
+84
+00:05:51,727 --> 00:05:54,210
+And that's why peek is unreliable.
+
+85
+00:05:54,210 --> 00:05:57,641
+The JDK may skip work it can prove unnecessary.
+
+86
+00:05:57,641 --> 00:06:04,795
+Since Java 9, count can answer straight from the source's size, so a peek before it may never run.
+
+87
+00:06:04,795 --> 00:06:07,424
+Use peek to observe while debugging.
+
+88
+00:06:07,424 --> 00:06:09,541
+Never use it to do real work.
+
+89
+00:06:10,441 --> 00:06:19,137
+Parallel streams run on the common ForkJoinPool, which has one thread fewer than your CPU cores and is shared by the whole JVM.
+
+90
+00:06:19,137 --> 00:06:34,270
+Parallelism helps when the data is large, think ten thousand elements or more, when the work per element is real CPU work, when the source splits cheaply, like an array or ArrayList, and when the operations are stateless.
+
+91
+00:06:34,720 --> 00:06:40,171
+It hurts when the work blocks on I/O, because the small pool just sits waiting.
+
+92
+00:06:40,171 --> 00:06:43,206
+Use virtual threads or an executor for that.
+
+93
+00:06:43,206 --> 00:06:55,349
+It hurts on small streams, on sources like LinkedList that split badly, and especially inside a server, where every request's parallel stream competes for that one shared pool.
+
+94
+00:06:55,799 --> 00:06:58,057
+So the default answer is sequential.
+
+95
+00:06:58,057 --> 00:07:02,007
+Add parallel when you've measured, not when the data looks big.
+
+96
+00:07:02,907 --> 00:07:04,095
+Production rules.
+
+97
+00:07:04,095 --> 00:07:10,522
+Use streams where the loop was just ceremony around a filter, a transform or an aggregation.
+
+98
+00:07:10,522 --> 00:07:13,735
+Prefer toList, but remember it's unmodifiable.
+
+99
+00:07:13,735 --> 00:07:16,110
+Use primitive streams for numbers.
+
+100
+00:07:16,110 --> 00:07:18,555
+Always give toMap a merge function.
+
+101
+00:07:18,555 --> 00:07:25,051
+Close file streams like Files dot lines with try-with-resources, or you'll leak file handles.
+
+102
+00:07:25,051 --> 00:07:28,614
+And extract long pipelines into well-named methods.
+
+103
+00:07:29,064 --> 00:07:30,457
+Never reuse a stream.
+
+104
+00:07:30,457 --> 00:07:32,579
+Never use peek for side effects.
+
+105
+00:07:32,579 --> 00:07:35,629
+Never mutate a shared collection from forEach.
+
+106
+00:07:35,629 --> 00:07:39,276
+Use collect instead, which is correct even in parallel.
+
+107
+00:07:39,276 --> 00:07:41,730
+Never block inside a parallel stream.
+
+108
+00:07:41,730 --> 00:07:45,244
+Never use an infinite source without a short-circuit.
+
+109
+00:07:45,244 --> 00:07:49,820
+And if a pipeline is more than about five operations, give it a name.
+
+110
+00:07:49,820 --> 00:07:53,533
+If you can't read it in one breath, the loop was better.
+
+111
+00:07:54,433 --> 00:07:59,596
+Java 8 delivered streams, primitive streams, collectors and parallel streams.
+
+112
+00:08:00,046 --> 00:08:06,008
+Java 9 added takeWhile, dropWhile, the bounded iterate, and Optional dot stream.
+
+113
+00:08:06,008 --> 00:08:11,225
+It also let count skip traversal, which is what makes peek unreliable.
+
+114
+00:08:11,675 --> 00:08:19,995
+Java 10 added unmodifiable collectors, and Java 12 added teeing, which runs two collectors in a single pass.
+
+115
+00:08:20,445 --> 00:08:23,947
+Java 16 brought Stream dot toList and mapMulti.
+
+116
+00:08:23,947 --> 00:08:31,922
+When migrating, check that nobody mutates the list, because the old collector returned a mutable ArrayList.
+
+117
+00:08:32,372 --> 00:08:38,601
+Java 21's virtual threads gave blocking work a proper home, off parallel streams.
+
+118
+00:08:39,051 --> 00:08:48,132
+And Java 24 finalised stream gatherers, so you can write your own intermediate operations, like windowing and running totals.
+
+119
+00:08:48,132 --> 00:08:50,166
+That's chapter thirty-eight.
+
+120
+00:08:51,066 --> 00:08:51,678
+To recap.
+
+121
+00:08:51,678 --> 00:08:59,160
+A stream is a lazy pipeline: a source, intermediate operations, and a terminal operation that runs everything.
+
+122
+00:08:59,160 --> 00:09:04,601
+Elements flow through one at a time, and short-circuiting operations stop early.
+
+123
+00:09:04,601 --> 00:09:09,498
+FlatMap merges nested streams, and takeWhile only works on sorted input.
+
+124
+00:09:09,498 --> 00:09:14,668
+Give toMap a merge function, and check that reduce's identity really is one.
+
+125
+00:09:14,668 --> 00:09:18,885
+And stay sequential until you've measured that parallel helps.
+
+126
+00:09:19,335 --> 00:09:26,234
+Next is chapter eight, collectors and stream composition, where most of the real work in collect happens.
+
+127
+00:09:26,234 --> 00:09:27,548
+Thanks for watching.

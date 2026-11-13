@@ -1,0 +1,307 @@
+1
+00:00:00,600 --> 00:00:03,885
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,885 --> 00:00:06,680
+This is chapter twenty-eight: executors.
+
+3
+00:00:07,130 --> 00:00:11,073
+An executor separates what to run from which thread runs it.
+
+4
+00:00:11,073 --> 00:00:16,724
+But the convenient factory methods have defaults that cause real production incidents.
+
+5
+00:00:16,724 --> 00:00:17,775
+Let's see three.
+
+6
+00:00:18,675 --> 00:00:19,745
+Three incidents.
+
+7
+00:00:19,745 --> 00:00:28,098
+A fixed thread pool sits on an unbounded queue, so when producers outpace the workers, the queue grows until memory runs out.
+
+8
+00:00:28,098 --> 00:00:35,248
+A cached thread pool has unbounded threads, so a burst of slow tasks creates thousands of platform threads.
+
+9
+00:00:35,248 --> 00:00:41,663
+And a scheduled job threw an exception once, which cancelled every future run, with no log line.
+
+10
+00:00:41,663 --> 00:00:43,401
+Nobody noticed for a week.
+
+11
+00:00:43,851 --> 00:00:48,032
+Each one is the factory method working exactly as documented.
+
+12
+00:00:48,932 --> 00:00:53,391
+ThreadPoolExecutor has a core size, a maximum size, and a queue.
+
+13
+00:00:53,391 --> 00:00:58,617
+When a task arrives, if fewer than core threads are running, it starts one.
+
+14
+00:00:59,067 --> 00:01:01,350
+Otherwise it tries to queue the task.
+
+15
+00:01:01,800 --> 00:01:06,707
+Only if the queue refuses does it start extra threads, up to the maximum.
+
+16
+00:01:07,157 --> 00:01:09,525
+And past that, it rejects the task.
+
+17
+00:01:09,975 --> 00:01:13,910
+Most people assume it grows to the maximum before queuing.
+
+18
+00:01:13,910 --> 00:01:15,131
+It's the opposite.
+
+19
+00:01:15,131 --> 00:01:20,966
+So with an unbounded queue, the queue never refuses, and the maximum is never reached.
+
+20
+00:01:20,966 --> 00:01:28,769
+A pool with core ten, max a hundred, and an unbounded queue runs exactly ten threads forever while its queue grows.
+
+21
+00:01:29,669 --> 00:01:34,324
+For a production service, construct ThreadPoolExecutor directly.
+
+22
+00:01:34,324 --> 00:01:40,432
+Core equals max at the core count, because CPU work gains nothing from more threads.
+
+23
+00:01:40,432 --> 00:01:42,469
+A bounded queue caps memory.
+
+24
+00:01:42,469 --> 00:01:46,178
+A named thread factory makes thread dumps readable.
+
+25
+00:01:46,178 --> 00:01:50,832
+availableProcessors respects container CPU limits since Java 10.
+
+26
+00:01:51,282 --> 00:01:53,441
+And choose a rejection policy.
+
+27
+00:01:53,441 --> 00:01:54,808
+The default throws.
+
+28
+00:01:54,808 --> 00:01:57,687
+The discard policies silently lose work.
+
+29
+00:01:57,687 --> 00:02:08,050
+CallerRunsPolicy is the useful one: when the pool is full, the submitting thread runs the task itself, which slows producers down automatically.
+
+30
+00:02:08,950 --> 00:02:15,775
+For I/O-bound work, the classic sizing formula says cores times one plus wait over compute.
+
+31
+00:02:15,775 --> 00:02:23,350
+Eight cores, five milliseconds of compute, ninety-five of waiting, gives a hundred and sixty threads.
+
+32
+00:02:23,800 --> 00:02:26,293
+On Java 21 and later, don't do that.
+
+33
+00:02:26,293 --> 00:02:31,627
+Use virtual threads, and bound the real constraint directly with a Semaphore.
+
+34
+00:02:31,627 --> 00:02:38,345
+The formula was always an indirect way of expressing a downstream limit through thread economics.
+
+35
+00:02:38,345 --> 00:02:44,579
+A semaphore says it directly, and virtual threads remove the reason thread count mattered.
+
+36
+00:02:45,479 --> 00:02:46,989
+Where do exceptions go?
+
+37
+00:02:46,989 --> 00:02:53,622
+With execute, an exception reaches the thread's uncaught exception handler, so it's logged, at least.
+
+38
+00:02:53,622 --> 00:03:02,422
+With submit, it's captured inside the returned Future, and if you discard that Future, which happens a lot, the failure is never seen.
+
+39
+00:03:02,422 --> 00:03:10,631
+So consume every Future with get and a timeout, use execute for fire-and-forget work, or wrap tasks in a try-catch that logs.
+
+40
+00:03:11,531 --> 00:03:13,696
+Here's the silent schedule fix.
+
+41
+00:03:13,696 --> 00:03:22,567
+If any run of a scheduled task throws, every later run is suppressed, and the exception sits in a ScheduledFuture nobody holds.
+
+42
+00:03:22,567 --> 00:03:28,853
+So catch everything inside the task, log it, and the schedule survives to retry next time.
+
+43
+00:03:29,303 --> 00:03:41,037
+And know the difference between fixed rate, which is start to start, so slow runs bunch up, and fixed delay, which guarantees a gap between the end of one run and the start of the next.
+
+44
+00:03:41,937 --> 00:03:42,958
+Use bulkheads.
+
+45
+00:03:42,958 --> 00:03:51,641
+Give each downstream dependency its own pool, so a slow vendor API saturates the vendor pool and payments keep flowing.
+
+46
+00:03:51,641 --> 00:03:57,041
+With virtual threads, you get the same isolation from separate semaphores.
+
+47
+00:03:57,491 --> 00:03:59,162
+And shut down properly.
+
+48
+00:03:59,162 --> 00:04:01,343
+shutdown stops accepting work.
+
+49
+00:04:01,343 --> 00:04:07,376
+Await termination with a timeout, then shutdownNow, which interrupts running tasks.
+
+50
+00:04:07,376 --> 00:04:10,865
+That only helps if they respond to interruption.
+
+51
+00:04:10,865 --> 00:04:15,517
+Since Java 19, short-lived executors work in try-with-resources.
+
+52
+00:04:16,417 --> 00:04:30,796
+Inside ThreadPoolExecutor, a field called ctl packs the run state and the worker count into one atomic integer, so both are checked and updated in a single compare-and-swap, with no global lock.
+
+53
+00:04:31,246 --> 00:04:34,443
+Each worker loops, taking tasks from the queue.
+
+54
+00:04:34,443 --> 00:04:39,339
+Non-core threads exit after sitting idle, which is how the pool shrinks.
+
+55
+00:04:39,339 --> 00:04:44,440
+And a task that throws through execute kills its worker, which is replaced.
+
+56
+00:04:44,440 --> 00:04:48,249
+Harmless, but failing tasks cause constant thread churn.
+
+57
+00:04:48,699 --> 00:04:54,572
+And the cached pool explosion comes from SynchronousQueue, which has no capacity at all.
+
+58
+00:04:54,572 --> 00:05:01,179
+If no thread is idle, the offer fails, and the pool starts a new thread, potentially without limit.
+
+59
+00:05:02,079 --> 00:05:03,318
+Production rules.
+
+60
+00:05:03,318 --> 00:05:09,660
+Construct ThreadPoolExecutor directly, with a bounded queue and a named thread factory.
+
+61
+00:05:09,660 --> 00:05:12,430
+Use CallerRunsPolicy for backpressure.
+
+62
+00:05:12,430 --> 00:05:15,710
+Use virtual threads with a semaphore for I/O.
+
+63
+00:05:15,710 --> 00:05:18,918
+Put a try-catch inside every scheduled task.
+
+64
+00:05:18,918 --> 00:05:21,833
+And bulkhead each downstream dependency.
+
+65
+00:05:22,283 --> 00:05:26,435
+Never use the fixed or cached factory methods in a service.
+
+66
+00:05:26,435 --> 00:05:29,038
+Never discard the Future from submit.
+
+67
+00:05:29,038 --> 00:05:33,542
+Never expect the maximum size to matter with an unbounded queue.
+
+68
+00:05:33,542 --> 00:05:36,708
+Never share one pool across every dependency.
+
+69
+00:05:36,708 --> 00:05:39,030
+And never skip a proper shutdown.
+
+70
+00:05:39,930 --> 00:05:40,574
+To recap.
+
+71
+00:05:40,574 --> 00:05:46,015
+A pool fills core threads, then the queue, then extra threads, then rejects.
+
+72
+00:05:46,015 --> 00:05:50,883
+So bound the queue, name the threads, and choose a rejection policy.
+
+73
+00:05:50,883 --> 00:05:53,890
+submit hides exceptions inside the Future.
+
+74
+00:05:53,890 --> 00:05:58,114
+One exception cancels a schedule, so catch inside the task.
+
+75
+00:05:58,114 --> 00:06:03,269
+And for I/O-bound work on Java 21, use virtual threads with a semaphore.
+
+76
+00:06:03,719 --> 00:06:06,846
+Next is chapter twenty-nine: CompletableFuture.
+
+77
+00:06:06,846 --> 00:06:08,177
+Thanks for watching.

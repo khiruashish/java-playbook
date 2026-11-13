@@ -1,0 +1,319 @@
+1
+00:00:00,600 --> 00:00:03,661
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,661 --> 00:00:06,723
+This is chapter thirty: concurrent collections.
+
+3
+00:00:07,173 --> 00:00:09,382
+The star is ConcurrentHashMap.
+
+4
+00:00:09,382 --> 00:00:18,885
+Using it well comes down to two things: understanding why it's fast, and always making a compound operation a single atomic call.
+
+5
+00:00:19,785 --> 00:00:22,713
+Here's a correct inventory reservation.
+
+6
+00:00:22,713 --> 00:00:26,092
+A plain HashMap behind a synchronized method.
+
+7
+00:00:26,092 --> 00:00:31,198
+It works, but it's one global lock across two hundred thousand SKUs.
+
+8
+00:00:31,648 --> 00:00:36,545
+A thread reserving milk blocks a thread reserving rice, for no reason.
+
+9
+00:00:36,545 --> 00:00:42,350
+Under heavy checkout load, throughput collapses to about one reservation at a time.
+
+10
+00:00:42,350 --> 00:00:48,856
+Collections dot synchronizedMap doesn't help, because it's the same single lock moved inside.
+
+11
+00:00:48,856 --> 00:00:52,213
+What we want is contention per key, not per map.
+
+12
+00:00:53,113 --> 00:00:56,605
+ConcurrentHashMap guards each bin independently.
+
+13
+00:00:56,605 --> 00:01:01,988
+Writing to an empty bin is a single compare-and-swap, with no lock at all.
+
+14
+00:01:02,438 --> 00:01:07,515
+Writing to an occupied bin synchronizes on that bin's first node only.
+
+15
+00:01:07,965 --> 00:01:09,431
+And reads never lock.
+
+16
+00:01:09,431 --> 00:01:17,736
+The table and node fields are volatile, so a reader always sees a consistent view, even during a write to the same bin.
+
+17
+00:01:18,186 --> 00:01:21,041
+So writes to different bins never interact.
+
+18
+00:01:21,041 --> 00:01:27,613
+There's no global state, which is exactly why size is approximate and iteration can't be fail-fast.
+
+19
+00:01:27,613 --> 00:01:29,007
+And it rejects nulls.
+
+20
+00:01:29,007 --> 00:01:38,965
+In a concurrent map, get returning null could mean absent or mapped to null, and you could never check which, because the map might change in between.
+
+21
+00:01:39,865 --> 00:01:45,353
+This bug survives code review because every individual call is thread-safe.
+
+22
+00:01:45,353 --> 00:01:47,402
+Check containsKey, then put.
+
+23
+00:01:47,402 --> 00:01:51,134
+But two atomic calls don't make an atomic sequence.
+
+24
+00:01:51,134 --> 00:01:55,818
+Two threads both see the key missing, both put, and one is lost.
+
+25
+00:01:55,818 --> 00:01:58,745
+The fix is one atomic call, putIfAbsent.
+
+26
+00:01:59,195 --> 00:02:06,813
+The rule: if your logic reads the map and then writes based on what it read, use a single atomic operation.
+
+27
+00:02:06,813 --> 00:02:16,923
+putIfAbsent, a conditional replace or remove, or compute, computeIfAbsent and merge, which run the whole read-modify-write under the bin lock.
+
+28
+00:02:17,823 --> 00:02:21,811
+Here's the reservation rewritten with no lock of our own.
+
+29
+00:02:21,811 --> 00:02:28,387
+compute runs the check and the decrement atomically, holding only the lock for this SKU's bin.
+
+30
+00:02:28,387 --> 00:02:32,585
+If there isn't enough stock, it returns the value unchanged.
+
+31
+00:02:33,035 --> 00:02:37,624
+Now two threads reserving different SKUs never touch each other.
+
+32
+00:02:37,624 --> 00:02:45,942
+Two threads reserving the same SKU serialise on one bin, which is exactly the serialisation the business rule needs.
+
+33
+00:02:46,842 --> 00:02:54,670
+computeIfAbsent makes a cache that loads each key at most once, even when many threads miss at the same moment.
+
+34
+00:02:54,670 --> 00:03:03,909
+The naive get, then put, runs the expensive evaluation once per contending thread, which is the stampede a cache exists to prevent.
+
+35
+00:03:04,359 --> 00:03:08,522
+But the mapping function runs while holding the bin's lock.
+
+36
+00:03:08,522 --> 00:03:11,274
+So never modify the same map inside it.
+
+37
+00:03:11,274 --> 00:03:16,284
+ConcurrentHashMap detects that and throws a recursive update exception.
+
+38
+00:03:16,284 --> 00:03:23,623
+And never do slow I/O inside it, because every other key hashing to that bin waits on your network call.
+
+39
+00:03:24,073 --> 00:03:27,802
+For expensive loads, store a CompletableFuture instead.
+
+40
+00:03:27,802 --> 00:03:33,566
+The lock is held only long enough to register the in-flight work, not to complete it.
+
+41
+00:03:34,466 --> 00:03:37,215
+A thread-safe map with unsafe contents.
+
+42
+00:03:37,215 --> 00:03:42,642
+computeIfAbsent is atomic, but the add that follows happens outside the lock.
+
+43
+00:03:42,642 --> 00:03:46,518
+Two threads can hold the same ArrayList and corrupt it.
+
+44
+00:03:46,518 --> 00:03:53,003
+Use a concurrent value type, like ConcurrentLinkedQueue, or swap immutable lists with merge.
+
+45
+00:03:53,003 --> 00:03:56,738
+For per-key counters, a LongAdder per key works well.
+
+46
+00:03:57,188 --> 00:04:05,803
+Remember: the map safely publishes the reference it stores, but it guarantees nothing about the object on the other end of it.
+
+47
+00:04:05,803 --> 00:04:10,863
+And bulk operations like putAll and clear are thread-safe, but not atomic.
+
+48
+00:04:10,863 --> 00:04:13,188
+A reader can see half of a putAll.
+
+49
+00:04:14,088 --> 00:04:16,429
+Inside, resizing is cooperative.
+
+50
+00:04:16,429 --> 00:04:21,402
+As bins move to the new table, they're replaced by forwarding nodes.
+
+51
+00:04:21,402 --> 00:04:25,937
+A writer that hits one helps migrate a stretch of bins itself.
+
+52
+00:04:25,937 --> 00:04:30,472
+Readers are simply redirected, so resizing never blocks reads.
+
+53
+00:04:30,922 --> 00:04:36,588
+There's no single size counter, because it would be a contention point on every write.
+
+54
+00:04:36,588 --> 00:04:41,200
+Instead it's striped across cells, like LongAdder, and size sums them.
+
+55
+00:04:41,200 --> 00:04:44,560
+So it's a value that was true at no single instant.
+
+56
+00:04:44,560 --> 00:04:47,327
+Use it for metrics, never for correctness.
+
+57
+00:04:47,777 --> 00:04:50,169
+And iterators are weakly consistent.
+
+58
+00:04:50,169 --> 00:04:58,272
+They never throw ConcurrentModificationException, never skip an element that was present throughout, and never repeat one.
+
+59
+00:04:58,272 --> 00:05:00,065
+But they're not a snapshot.
+
+60
+00:05:00,515 --> 00:05:02,587
+This is the Java 8 rewrite.
+
+61
+00:05:02,587 --> 00:05:06,422
+Java 7 used sixteen segments with their own locks.
+
+62
+00:05:06,422 --> 00:05:11,715
+If you see code tuning concurrencyLevel, it's now only a sizing hint.
+
+63
+00:05:12,615 --> 00:05:13,877
+Production rules.
+
+64
+00:05:13,877 --> 00:05:17,588
+Make every read-modify-write a single atomic call.
+
+65
+00:05:17,588 --> 00:05:23,154
+Use computeIfAbsent for load-once caches, and store futures for slow loads.
+
+66
+00:05:23,154 --> 00:05:25,825
+Keep values concurrent or immutable.
+
+67
+00:05:25,825 --> 00:05:28,942
+Use LongAdder values for per-key counters.
+
+68
+00:05:28,942 --> 00:05:33,543
+And for a concurrent set, use ConcurrentHashMap dot newKeySet.
+
+69
+00:05:33,993 --> 00:05:36,469
+Never write containsKey then put.
+
+70
+00:05:36,469 --> 00:05:40,744
+Never do I/O inside compute, or touch the same map there.
+
+71
+00:05:40,744 --> 00:05:43,444
+Never share mutable values unsafely.
+
+72
+00:05:43,444 --> 00:05:46,144
+Never make a decision based on size.
+
+73
+00:05:46,144 --> 00:05:48,095
+And never put nulls in it.
+
+74
+00:05:48,995 --> 00:05:49,673
+To recap.
+
+75
+00:05:49,673 --> 00:05:57,737
+ConcurrentHashMap locks per bin: a CAS for empty bins, synchronized for occupied ones, and lock-free reads.
+
+76
+00:05:57,737 --> 00:06:03,238
+Two atomic calls don't make an atomic sequence, so use compute and merge.
+
+77
+00:06:03,238 --> 00:06:08,740
+computeIfAbsent holds the bin lock, so no I/O and no recursion inside it.
+
+78
+00:06:08,740 --> 00:06:12,056
+And a safe map doesn't make its values safe.
+
+79
+00:06:12,506 --> 00:06:15,425
+Next is chapter thirty-one: virtual threads.
+
+80
+00:06:15,425 --> 00:06:16,751
+Thanks for watching.

@@ -1,0 +1,343 @@
+1
+00:00:00,600 --> 00:00:03,852
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,852 --> 00:00:08,280
+This is chapter thirty-five: memory footprint and object layout.
+
+3
+00:00:08,730 --> 00:00:12,490
+Java hides memory layout, which is usually a feature.
+
+4
+00:00:12,490 --> 00:00:18,803
+It stops being one when a million small objects take four times the memory you estimated.
+
+5
+00:00:18,803 --> 00:00:20,506
+Let's see where it goes.
+
+6
+00:00:21,406 --> 00:00:24,671
+The SKU catalogue holds a million entries.
+
+7
+00:00:24,671 --> 00:00:30,113
+The estimate: four plus four plus eight bytes of fields, plus the SKU.
+
+8
+00:00:30,113 --> 00:00:31,667
+Say fifty megabytes.
+
+9
+00:00:32,117 --> 00:00:36,284
+The class histogram says two hundred and sixteen megabytes.
+
+10
+00:00:36,284 --> 00:00:37,484
+Nothing is wrong.
+
+11
+00:00:37,484 --> 00:00:47,371
+The estimate ignored object headers, references, the map's own nodes, and the fact that a SKU wrapping a String is several objects, not one.
+
+12
+00:00:48,271 --> 00:00:50,725
+Every object starts with a header.
+
+13
+00:00:50,725 --> 00:00:55,417
+An eight-byte mark word, holding the hash, lock state and GC age.
+
+14
+00:00:55,867 --> 00:00:58,875
+Then a class pointer, four bytes when compressed.
+
+15
+00:00:59,325 --> 00:01:01,346
+That's twelve bytes of header.
+
+16
+00:01:01,346 --> 00:01:04,040
+Java 25's compact headers make it eight.
+
+17
+00:01:04,490 --> 00:01:07,519
+Each reference field is four bytes, compressed.
+
+18
+00:01:07,969 --> 00:01:11,102
+And everything rounds up to a multiple of eight.
+
+19
+00:01:11,102 --> 00:01:14,561
+So even an object with no fields takes sixteen bytes.
+
+20
+00:01:15,011 --> 00:01:21,482
+Here's the idea that drives every optimisation: object count matters more than field count.
+
+21
+00:01:21,482 --> 00:01:26,531
+Each reference hop adds another header, and each map entry adds a node.
+
+22
+00:01:27,431 --> 00:01:29,243
+Some sizes worth knowing.
+
+23
+00:01:29,243 --> 00:01:32,214
+An Object or an Integer is sixteen bytes.
+
+24
+00:01:32,214 --> 00:01:34,387
+A Long or Double, twenty-four.
+
+25
+00:01:34,387 --> 00:01:38,010
+An empty String is forty, counting its byte array.
+
+26
+00:01:38,010 --> 00:01:40,981
+Arrays are sixteen plus four per element.
+
+27
+00:01:40,981 --> 00:01:48,082
+A HashMap node is thirty-two, and a LinkedList node is twenty-four, plus the element it points to.
+
+28
+00:01:48,532 --> 00:01:53,932
+And to measure one object exactly, use JOL, the Java Object Layout library.
+
+29
+00:01:53,932 --> 00:01:57,244
+It shows each field's offset, and the padding.
+
+30
+00:01:57,244 --> 00:02:00,052
+Here, eight of forty bytes are padding.
+
+31
+00:02:00,952 --> 00:02:03,726
+Let's account for one catalogue entry.
+
+32
+00:02:03,726 --> 00:02:07,011
+The InventoryItem record is thirty-two bytes.
+
+33
+00:02:07,461 --> 00:02:09,743
+The Sku wrapping the code is sixteen.
+
+34
+00:02:10,193 --> 00:02:13,884
+The String is twenty-four, plus thirty-two for its byte array.
+
+35
+00:02:14,334 --> 00:02:19,241
+Then the HashMap node, thirty-two, plus about five bytes of table slot.
+
+36
+00:02:19,691 --> 00:02:26,528
+That's around a hundred and forty-one bytes per entry, against sixteen bytes of actual fields.
+
+37
+00:02:26,528 --> 00:02:32,128
+A nine-times multiplier, entirely headers, references and container overhead.
+
+38
+00:02:33,028 --> 00:02:35,477
+Boxing is the most dramatic case.
+
+39
+00:02:35,477 --> 00:02:41,190
+A HashMap of a million Integer keys and values is about sixty-nine megabytes.
+
+40
+00:02:41,190 --> 00:02:44,900
+A plain int array holding the same counts is four.
+
+41
+00:02:44,900 --> 00:02:46,681
+Seventeen times smaller.
+
+42
+00:02:47,131 --> 00:02:51,095
+The general technique is removing objects, not fields.
+
+43
+00:02:51,095 --> 00:02:54,766
+A record graph in a map is five objects per entry.
+
+44
+00:02:54,766 --> 00:02:58,510
+Parallel arrays with an index get that down to two.
+
+45
+00:02:58,510 --> 00:03:01,446
+Arrays with encoded keys, close to zero.
+
+46
+00:03:01,896 --> 00:03:05,910
+But flattened data is harder to read and easy to get wrong.
+
+47
+00:03:05,910 --> 00:03:14,346
+Only do it when a measurement says footprint is the constraint, and hide it behind an API that still speaks in domain terms.
+
+48
+00:03:14,346 --> 00:03:21,693
+For big numeric maps, libraries like fastutil or Eclipse Collections give you primitive maps with no boxing.
+
+49
+00:03:22,593 --> 00:03:23,151
+Strings.
+
+50
+00:03:23,151 --> 00:03:33,051
+Since Java 9, compact strings store ASCII text in one byte per character instead of two, roughly halving string memory, with no configuration.
+
+51
+00:03:33,051 --> 00:03:38,907
+What's left is duplication: a million String objects with far fewer distinct values.
+
+52
+00:03:38,907 --> 00:03:46,785
+Enabling G1 string deduplication costs nothing to try, and the measurement shows straight away whether it helped.
+
+53
+00:03:47,235 --> 00:03:52,608
+And Java 25's compact object headers cut the header from twelve bytes to eight.
+
+54
+00:03:52,608 --> 00:04:03,491
+A HashMap node drops from thirty-two to twenty-four, and our catalogue entry from about a hundred and forty-one to a hundred and seventeen, with no code change.
+
+55
+00:04:03,491 --> 00:04:06,755
+So re-baseline your heap sizing after upgrading.
+
+56
+00:04:07,655 --> 00:04:16,253
+Compressed references store a thirty-two-bit value scaled by the eight-byte alignment, which addresses thirty-two gigabytes of heap.
+
+57
+00:04:16,703 --> 00:04:20,756
+Go past that, and every reference doubles to sixty-four bits.
+
+58
+00:04:21,206 --> 00:04:27,488
+So a thirty-three gigabyte heap can hold fewer objects than a thirty-one gigabyte heap.
+
+59
+00:04:27,488 --> 00:04:29,294
+Check the flag with jcmd.
+
+60
+00:04:29,294 --> 00:04:34,854
+Past the threshold, the answer is usually more JVMs rather than a bigger one.
+
+61
+00:04:34,854 --> 00:04:43,158
+And note that the JVM reorders fields to minimise padding, so declaration order in your source makes no difference.
+
+62
+00:04:44,058 --> 00:04:44,711
+The tools.
+
+63
+00:04:44,711 --> 00:04:48,303
+The class histogram shows what's on the heap, by class.
+
+64
+00:04:48,753 --> 00:04:52,124
+A heap dump captures everything for offline analysis.
+
+65
+00:04:52,574 --> 00:04:56,158
+JOL shows the exact layout of a single object.
+
+66
+00:04:56,608 --> 00:05:05,184
+Eclipse Memory Analyzer shows retained sizes, meaning what would be freed if an object went away, and points at likely leaks.
+
+67
+00:05:05,634 --> 00:05:12,546
+And native memory tracking shows the memory outside the heap, like metaspace, thread stacks and code cache.
+
+68
+00:05:13,446 --> 00:05:14,769
+Production rules.
+
+69
+00:05:14,769 --> 00:05:17,958
+Measure with the class histogram and JOL.
+
+70
+00:05:17,958 --> 00:05:20,759
+Count objects per entry, not fields.
+
+71
+00:05:20,759 --> 00:05:24,571
+Use primitive collections for large numeric maps.
+
+72
+00:05:24,571 --> 00:05:26,515
+Try string deduplication.
+
+73
+00:05:26,515 --> 00:05:30,094
+Stay under thirty-two gigabytes, or scale out.
+
+74
+00:05:30,094 --> 00:05:34,139
+And re-baseline heap sizing after moving to Java 25.
+
+75
+00:05:34,589 --> 00:05:37,777
+Never estimate memory from field sizes alone.
+
+76
+00:05:37,777 --> 00:05:40,681
+Never flatten data without a measurement.
+
+77
+00:05:40,681 --> 00:05:47,268
+Don't reach for String dot intern casually, since interned strings are effectively permanent.
+
+78
+00:05:47,268 --> 00:05:51,022
+Never pick a thirty-three gigabyte heap for headroom.
+
+79
+00:05:51,022 --> 00:05:56,051
+And don't reorder fields to save padding, because the JVM already does.
+
+80
+00:05:56,951 --> 00:05:57,623
+To recap.
+
+81
+00:05:57,623 --> 00:06:06,139
+An object header is twelve bytes, eight on Java 25, everything aligns to eight, and the minimum object is sixteen.
+
+82
+00:06:06,139 --> 00:06:11,219
+Object count drives footprint, often nine times the raw field bytes.
+
+83
+00:06:11,219 --> 00:06:14,506
+Boxing and map nodes are the usual culprits.
+
+84
+00:06:14,506 --> 00:06:18,689
+And compressed references end near thirty-two gigabytes.
+
+85
+00:06:19,139 --> 00:06:22,972
+Next is chapter thirty-six: startup and Project Leyden.
+
+86
+00:06:22,972 --> 00:06:24,366
+Thanks for watching.

@@ -1,0 +1,323 @@
+1
+00:00:00,600 --> 00:00:03,861
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,861 --> 00:00:07,192
+This is chapter twenty-seven: locks and atomics.
+
+3
+00:00:07,642 --> 00:00:09,903
+synchronized is the right default.
+
+4
+00:00:09,903 --> 00:00:17,882
+But there are four requirements it can't express, and each one has a purpose-built tool in java dot util dot concurrent.
+
+5
+00:00:18,782 --> 00:00:21,776
+Four requirements synchronized can't express.
+
+6
+00:00:21,776 --> 00:00:27,430
+Give up after a timeout, because checkout can't block forever while a customer waits.
+
+7
+00:00:27,430 --> 00:00:33,284
+Let readers proceed concurrently, because prices are read constantly and updated rarely.
+
+8
+00:00:33,284 --> 00:00:37,941
+Wait for something to happen, like all vendor connections being ready.
+
+9
+00:00:37,941 --> 00:00:42,398
+And limit concurrency, say to twenty calls against a warehouse API.
+
+10
+00:00:42,848 --> 00:00:46,431
+You could build each from synchronized and wait-notify.
+
+11
+00:00:46,431 --> 00:00:50,144
+The result would be longer, slower, and wrong more often.
+
+12
+00:00:51,044 --> 00:00:52,473
+The core distinction.
+
+13
+00:00:52,473 --> 00:00:58,393
+A lock protects any block of code, and under contention threads wait, parked by the OS.
+
+14
+00:00:58,393 --> 00:01:04,654
+An atomic protects one variable, using compare-and-swap, and under contention threads retry.
+
+15
+00:01:04,654 --> 00:01:12,208
+So atomics can't deadlock and never park, but under heavy contention every thread spins retrying and burns CPU.
+
+16
+00:01:12,208 --> 00:01:16,495
+Locks are cheaper when sections are long or contention is high.
+
+17
+00:01:16,945 --> 00:01:22,009
+And almost everything here is built on one class, AbstractQueuedSynchronizer.
+
+18
+00:01:22,009 --> 00:01:28,257
+It's an atomic int that means something different to each tool, plus a queue of parked threads.
+
+19
+00:01:28,257 --> 00:01:31,217
+Understand that, and you understand them all.
+
+20
+00:01:32,117 --> 00:01:39,721
+ReentrantLock adds what synchronized lacks: timeouts, interruptible waits, fairness, and multiple conditions.
+
+21
+00:01:39,721 --> 00:01:46,069
+Here, tryLock waits at most two hundred milliseconds, then reports busy instead of hanging.
+
+22
+00:01:46,519 --> 00:01:50,705
+That turns an indefinite hang into a bounded, reportable failure.
+
+23
+00:01:50,705 --> 00:01:59,852
+It also breaks one of the four deadlock conditions, because a thread that can't acquire gives up instead of waiting while holding what it has.
+
+24
+00:02:00,302 --> 00:02:02,765
+And the finally is non-negotiable.
+
+25
+00:02:02,765 --> 00:02:07,475
+synchronized releases its monitor on any exit, even an exception.
+
+26
+00:02:07,475 --> 00:02:11,387
+A ReentrantLock is released only when you call unlock.
+
+27
+00:02:11,387 --> 00:02:15,662
+Miss it on an exception path, and the lock is held forever.
+
+28
+00:02:16,562 --> 00:02:22,465
+For read-mostly data, StampedLock offers an optimistic read that takes no lock at all.
+
+29
+00:02:22,465 --> 00:02:27,749
+Read a stamp, read the data, then validate that no write happened in between.
+
+30
+00:02:27,749 --> 00:02:31,593
+Only on a conflict do you fall back to a real read lock.
+
+31
+00:02:31,593 --> 00:02:36,878
+Two cautions: it's not reentrant, so taking it twice on one thread deadlocks.
+
+32
+00:02:36,878 --> 00:02:39,623
+And validate before using what you read.
+
+33
+00:02:40,073 --> 00:02:45,160
+But when updates replace the whole value, there's often a simpler answer.
+
+34
+00:02:45,160 --> 00:02:48,296
+An immutable map behind a volatile reference.
+
+35
+00:02:48,296 --> 00:02:51,501
+Readers take no lock, writers swap atomically.
+
+36
+00:02:51,501 --> 00:02:52,895
+That beats any lock.
+
+37
+00:02:53,795 --> 00:02:54,362
+Atomics.
+
+38
+00:02:54,362 --> 00:02:57,555
+incrementAndGet gives exact sequence numbers.
+
+39
+00:02:57,555 --> 00:03:01,670
+updateAndGet runs a compare-and-swap loop with a function.
+
+40
+00:03:01,670 --> 00:03:06,707
+Under contention that function runs more than once, so it must be pure.
+
+41
+00:03:06,707 --> 00:03:12,099
+No logging, no side effects, or your audit log records things several times.
+
+42
+00:03:12,549 --> 00:03:16,389
+And for counters many threads hammer, use LongAdder.
+
+43
+00:03:16,389 --> 00:03:21,338
+With AtomicLong, every thread CASes the same memory and most retry.
+
+44
+00:03:21,338 --> 00:03:25,769
+LongAdder spreads writes across cells and sums them on read.
+
+45
+00:03:25,769 --> 00:03:32,047
+So AtomicLong for exact values like IDs, LongAdder for metrics you read occasionally.
+
+46
+00:03:32,947 --> 00:03:36,708
+For coordination, a CountDownLatch waits for n events.
+
+47
+00:03:36,708 --> 00:03:42,906
+Each vendor connection counts down, and await blocks until all are ready, with a timeout.
+
+48
+00:03:42,906 --> 00:03:49,104
+A Semaphore bounds concurrency: acquire a permit, call the warehouse, release in finally.
+
+49
+00:03:49,104 --> 00:03:51,123
+At most twenty calls at once.
+
+50
+00:03:51,573 --> 00:03:54,884
+CountDownLatch is one-shot and can't be reset.
+
+51
+00:03:54,884 --> 00:03:59,347
+For threads that meet repeatedly, use CyclicBarrier or Phaser.
+
+52
+00:03:59,347 --> 00:04:06,976
+And Semaphore pairs naturally with virtual threads: ten thousand can exist while only twenty hold permits.
+
+53
+00:04:07,876 --> 00:04:10,502
+One subtle trap: the ABA problem.
+
+54
+00:04:10,502 --> 00:04:12,015
+Thread one reads A.
+
+55
+00:04:12,465 --> 00:04:14,363
+Thread two changes it to B.
+
+56
+00:04:14,813 --> 00:04:16,115
+Then back to A.
+
+57
+00:04:16,565 --> 00:04:20,928
+Thread one's compare-and-swap succeeds, assuming nothing changed.
+
+58
+00:04:20,928 --> 00:04:22,069
+It changed twice.
+
+59
+00:04:22,519 --> 00:04:27,737
+CAS only checks that the value is equal, not that it was never modified.
+
+60
+00:04:27,737 --> 00:04:32,157
+It matters mostly in lock-free structures that recycle nodes.
+
+61
+00:04:32,157 --> 00:04:37,810
+The fix is AtomicStampedReference, which pairs the value with a version stamp.
+
+62
+00:04:37,810 --> 00:04:42,231
+For immutable values that are never reused, it doesn't arise.
+
+63
+00:04:43,131 --> 00:04:44,391
+Production rules.
+
+64
+00:04:44,391 --> 00:04:46,467
+Use synchronized by default.
+
+65
+00:04:46,467 --> 00:04:48,320
+Always unlock in finally.
+
+66
+00:04:48,320 --> 00:04:52,250
+Use tryLock with a timeout where a caller is waiting.
+
+67
+00:04:52,250 --> 00:04:58,106
+For read-mostly data, try an immutable value behind a volatile reference first.
+
+68
+00:04:58,106 --> 00:05:04,037
+Use LongAdder for contended metrics, and Semaphore to respect downstream limits.
+
+69
+00:05:04,487 --> 00:05:07,458
+Never put side effects inside updateAndGet.
+
+70
+00:05:07,458 --> 00:05:10,913
+Never re-acquire a StampedLock on the same thread.
+
+71
+00:05:10,913 --> 00:05:16,717
+Don't make locks fair without measuring, because fairness costs a lot of throughput.
+
+72
+00:05:16,717 --> 00:05:18,721
+Never reuse a CountDownLatch.
+
+73
+00:05:18,721 --> 00:05:24,455
+And never build your own synchroniser from wait and notify when one already exists.
+
+74
+00:05:25,355 --> 00:05:25,989
+To recap.
+
+75
+00:05:25,989 --> 00:05:28,031
+Locks wait and atomics retry.
+
+76
+00:05:28,031 --> 00:05:33,453
+ReentrantLock adds timeouts and interruption, but you must unlock in finally.
+
+77
+00:05:33,453 --> 00:05:38,875
+For read-mostly data, use an optimistic StampedLock, or just a volatile swap.
+
+78
+00:05:38,875 --> 00:05:43,099
+Use LongAdder for hot counters, and keep CAS functions pure.
+
+79
+00:05:43,099 --> 00:05:49,014
+And use the built-in latches, barriers and semaphores rather than hand-rolling them.
+
+80
+00:05:49,464 --> 00:05:52,024
+Next is chapter twenty-eight: executors.
+
+81
+00:05:52,024 --> 00:05:53,304
+Thanks for watching.

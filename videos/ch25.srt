@@ -1,0 +1,367 @@
+1
+00:00:00,600 --> 00:00:03,732
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,732 --> 00:00:06,531
+This is chapter twenty-five: shared state.
+
+3
+00:00:06,981 --> 00:00:12,006
+The moment two threads touch the same data, three different things can go wrong.
+
+4
+00:00:12,006 --> 00:00:17,157
+Telling them apart is the key to fixing them, because each needs a different tool.
+
+5
+00:00:18,057 --> 00:00:20,056
+Here's an inventory counter.
+
+6
+00:00:20,056 --> 00:00:25,124
+Reserving stock is one line: available equals available minus quantity.
+
+7
+00:00:25,124 --> 00:00:32,691
+Run it from two threads, ten thousand reservations each, and the result is wrong, and different every run.
+
+8
+00:00:33,141 --> 00:00:37,382
+That one line is really three steps: read, subtract, write.
+
+9
+00:00:37,382 --> 00:00:43,419
+Two threads can both read the same value before either writes, so an update is lost.
+
+10
+00:00:43,419 --> 00:00:49,888
+In the inventory engine, that means overselling: two customers both reserve the last unit.
+
+11
+00:00:50,788 --> 00:00:53,271
+There are three separate problems.
+
+12
+00:00:53,271 --> 00:00:58,236
+Atomicity: a compound action gets interleaved, like the lost update.
+
+13
+00:00:58,236 --> 00:01:01,668
+Fixed by synchronized, locks or atomic classes.
+
+14
+00:01:02,118 --> 00:01:06,028
+Visibility: one thread's write is never seen by another.
+
+15
+00:01:06,028 --> 00:01:10,498
+A loop keeps running after another thread sets running to false.
+
+16
+00:01:10,498 --> 00:01:13,361
+Fixed by volatile, synchronized or final.
+
+17
+00:01:13,811 --> 00:01:20,876
+Ordering: the compiler or CPU reorders operations, so another thread sees a half-built object.
+
+18
+00:01:20,876 --> 00:01:23,432
+Fixed by volatile or synchronized.
+
+19
+00:01:23,882 --> 00:01:29,246
+The key point: volatile fixes visibility and ordering, but not atomicity.
+
+20
+00:01:29,246 --> 00:01:33,802
+Most misuse of volatile comes from not separating these three.
+
+21
+00:01:34,702 --> 00:01:37,797
+Visibility sounds theoretical, but it isn't.
+
+22
+00:01:37,797 --> 00:01:42,510
+Cores have their own caches, and the JIT keeps values in registers.
+
+23
+00:01:42,510 --> 00:01:51,655
+Here, the JIT sees that nothing in this thread writes running, so it's allowed to read it once and compile the loop to while true.
+
+24
+00:01:51,655 --> 00:01:53,625
+The stop call is never seen.
+
+25
+00:01:54,075 --> 00:01:56,497
+Marking the flag volatile fixes it.
+
+26
+00:01:56,497 --> 00:02:04,869
+This is the canonical correct use of volatile: one writer, many readers, and the new value doesn't depend on the old one.
+
+27
+00:02:05,319 --> 00:02:14,877
+And because the hoisting is a legal optimisation, the bug usually disappears under a debugger or the interpreter, and appears only in production.
+
+28
+00:02:15,777 --> 00:02:16,776
+Here's the fix.
+
+29
+00:02:16,776 --> 00:02:23,572
+A synchronized block makes the check and the update one atomic step, so the result is right every run.
+
+30
+00:02:23,572 --> 00:02:33,633
+synchronized is reentrant, and it creates a happens-before edge: everything done before releasing the lock is visible to the next thread that takes it.
+
+31
+00:02:34,083 --> 00:02:36,613
+Notice the read is synchronized too.
+
+32
+00:02:36,613 --> 00:02:40,057
+Without it, available could return a stale value.
+
+33
+00:02:40,057 --> 00:02:44,344
+Synchronizing only writes is a half-fix that appears to work.
+
+34
+00:02:44,794 --> 00:02:47,661
+And the lock is a private object, not this.
+
+35
+00:02:47,661 --> 00:02:56,463
+Locking on this publishes your lock, so any caller can synchronize on your object and stall your internals, or deadlock against you.
+
+36
+00:02:57,363 --> 00:02:59,856
+volatile doesn't make plus plus safe.
+
+37
+00:02:59,856 --> 00:03:05,716
+It makes each read and each write visible, but does nothing about the gap between them.
+
+38
+00:03:05,716 --> 00:03:11,038
+Use an AtomicInteger, or a LongAdder when many threads hammer the same counter.
+
+39
+00:03:11,488 --> 00:03:16,474
+The same race hides in check-then-act code, with no arithmetic at all.
+
+40
+00:03:16,474 --> 00:03:20,605
+Two threads can both see the key is missing, and both put.
+
+41
+00:03:20,605 --> 00:03:25,591
+Any test followed by an act on shared state must be atomic as a whole.
+
+42
+00:03:25,591 --> 00:03:28,939
+Use one operation, like putIfAbsent or compute.
+
+43
+00:03:29,839 --> 00:03:33,050
+wait and notify build producer-consumer buffers.
+
+44
+00:03:33,050 --> 00:03:35,792
+wait releases the monitor while it waits.
+
+45
+00:03:35,792 --> 00:03:38,133
+The whole lesson is the while loop.
+
+46
+00:03:38,133 --> 00:03:47,499
+On waking, a thread must re-check its condition, because the spec allows spurious wakeups, and another thread may have taken the item first.
+
+47
+00:03:47,499 --> 00:03:51,044
+An if here gives you an exception about once a month.
+
+48
+00:03:51,494 --> 00:03:55,800
+You must hold the monitor to call these, and prefer notifyAll.
+
+49
+00:03:55,800 --> 00:04:03,230
+But in practice, almost every correct use of wait and notify is reimplementing a blocking queue, less well.
+
+50
+00:04:03,230 --> 00:04:04,827
+Use ArrayBlockingQueue.
+
+51
+00:04:05,727 --> 00:04:08,233
+Here's a deadlock you can reproduce.
+
+52
+00:04:08,233 --> 00:04:10,391
+A transfer locks from, then to.
+
+53
+00:04:10,391 --> 00:04:15,193
+Thread A transfers milk to rice, and thread B transfers rice to milk.
+
+54
+00:04:15,193 --> 00:04:21,040
+A holds milk and wants rice, B holds rice and wants milk, and neither ever proceeds.
+
+55
+00:04:21,040 --> 00:04:23,198
+The fix is a global lock order.
+
+56
+00:04:23,198 --> 00:04:29,045
+Sort the two items, here by SKU code, and every thread locks them in the same order.
+
+57
+00:04:29,495 --> 00:04:34,467
+A deadlock needs four conditions at once, and breaking any one prevents it.
+
+58
+00:04:34,467 --> 00:04:42,755
+Lock ordering is the practical answer, because it's something you can see in code review rather than have to catch in a test.
+
+59
+00:04:42,755 --> 00:04:47,927
+And when one happens, jcmd Thread dot print reports monitor deadlocks by name.
+
+60
+00:04:48,827 --> 00:04:50,131
+What does it cost?
+
+61
+00:04:50,131 --> 00:04:56,217
+An uncontended synchronized block is a single compare-and-swap on the object header.
+
+62
+00:04:56,217 --> 00:04:57,086
+Nanoseconds.
+
+63
+00:04:57,086 --> 00:04:59,984
+Synchronized is slow is outdated advice.
+
+64
+00:04:59,984 --> 00:05:04,187
+It's contention that's expensive, and no lock avoids that.
+
+65
+00:05:04,637 --> 00:05:10,789
+A volatile read is essentially free on x86, and a write costs about a compare-and-swap.
+
+66
+00:05:10,789 --> 00:05:18,567
+The barrier also stops reordering, which is what makes double-checked locking correct, but only with volatile.
+
+67
+00:05:19,017 --> 00:05:20,162
+And a subtle one.
+
+68
+00:05:20,162 --> 00:05:29,586
+The spec lets a non-volatile long or double write happen as two thirty-two-bit halves, so a reader could see a value that was never written.
+
+69
+00:05:29,586 --> 00:05:31,135
+Volatile prevents that.
+
+70
+00:05:32,035 --> 00:05:33,226
+Production rules.
+
+71
+00:05:33,226 --> 00:05:40,656
+Best of all, avoid shared mutable state: immutable objects, confinement to one thread, or message passing.
+
+72
+00:05:40,656 --> 00:05:44,161
+Every lock you don't need is a bug you can't have.
+
+73
+00:05:44,161 --> 00:05:46,334
+Lock on a private final object.
+
+74
+00:05:46,334 --> 00:05:47,876
+Synchronize reads too.
+
+75
+00:05:47,876 --> 00:05:51,311
+Keep critical sections short, with no I/O inside.
+
+76
+00:05:51,311 --> 00:05:53,203
+Impose a global lock order.
+
+77
+00:05:53,203 --> 00:05:56,077
+And comment which lock guards each field.
+
+78
+00:05:56,527 --> 00:05:59,629
+Never assume volatile makes plus plus safe.
+
+79
+00:05:59,629 --> 00:06:01,360
+Never wait inside an if.
+
+80
+00:06:01,360 --> 00:06:06,625
+Never lock on string literals or boxed values, which are shared JVM-wide.
+
+81
+00:06:06,625 --> 00:06:09,510
+Never hold a lock across a network call.
+
+82
+00:06:09,510 --> 00:06:12,755
+Never let lock order depend on the arguments.
+
+83
+00:06:12,755 --> 00:06:15,352
+And never use sleep to avoid a race.
+
+84
+00:06:15,352 --> 00:06:18,309
+It just hides the bug until load changes.
+
+85
+00:06:19,209 --> 00:06:19,843
+To recap.
+
+86
+00:06:19,843 --> 00:06:24,638
+Shared state has three problems: atomicity, visibility and ordering.
+
+87
+00:06:24,638 --> 00:06:30,279
+volatile solves visibility, not atomicity, so use atomics for read-modify-write.
+
+88
+00:06:30,279 --> 00:06:33,171
+Synchronize reads too, on a private lock.
+
+89
+00:06:33,171 --> 00:06:36,978
+Wait in a while loop, or better, use a blocking queue.
+
+90
+00:06:36,978 --> 00:06:40,222
+And prevent deadlock with a global lock order.
+
+91
+00:06:40,672 --> 00:06:46,791
+Next is chapter twenty-six, the Java memory model, which explains why all of this works.
+
+92
+00:06:46,791 --> 00:06:48,181
+Thanks for watching.

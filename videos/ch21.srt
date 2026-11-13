@@ -1,0 +1,327 @@
+1
+00:00:00,600 --> 00:00:03,670
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,670 --> 00:00:06,936
+This is chapter twenty-one: sequenced collections.
+
+3
+00:00:07,386 --> 00:00:13,961
+For twenty-five years, Java had ordered collections but no common way to talk about their ends.
+
+4
+00:00:13,961 --> 00:00:17,560
+Java 21 fixed that by retrofitting three interfaces.
+
+5
+00:00:17,560 --> 00:00:25,242
+The feature is small, the retrofit is interesting, and there's one correction that circulating notes get wrong.
+
+6
+00:00:26,142 --> 00:00:32,295
+Before Java 21, the last element of four ordered collections needed four spellings.
+
+7
+00:00:32,295 --> 00:00:34,815
+A List used get of size minus one.
+
+8
+00:00:34,815 --> 00:00:36,298
+A Deque had getLast.
+
+9
+00:00:36,298 --> 00:00:41,931
+A LinkedHashSet had no accessor at all, so you looped through every element.
+
+10
+00:00:41,931 --> 00:00:43,785
+And a SortedSet had last.
+
+11
+00:00:44,235 --> 00:00:45,963
+Going backwards was worse.
+
+12
+00:00:45,963 --> 00:00:49,154
+You copied the whole list and reversed the copy.
+
+13
+00:00:49,154 --> 00:00:53,075
+And for a LinkedHashMap, there was no supported way at all.
+
+14
+00:00:53,075 --> 00:00:59,723
+Each type had some idea of first and last, but no shared interface, so no generic code could use it.
+
+15
+00:01:00,623 --> 00:01:02,997
+Java 21 added three interfaces.
+
+16
+00:01:02,997 --> 00:01:12,724
+SequencedCollection gives every ordered collection getFirst, getLast, addFirst, addLast, removeFirst, removeLast, and reversed.
+
+17
+00:01:12,724 --> 00:01:14,639
+List and Deque extend it.
+
+18
+00:01:15,089 --> 00:01:19,702
+SequencedSet adds nothing new, except that reversed returns a Set.
+
+19
+00:01:19,702 --> 00:01:22,427
+LinkedHashSet and TreeSet implement it.
+
+20
+00:01:22,877 --> 00:01:29,664
+And SequencedMap gives firstEntry, lastEntry, putFirst, putLast, poll methods, and reversed.
+
+21
+00:01:29,664 --> 00:01:32,541
+LinkedHashMap and TreeMap implement it.
+
+22
+00:01:32,991 --> 00:01:36,163
+The defining property is an encounter order.
+
+23
+00:01:36,163 --> 00:01:38,037
+And here's the correction.
+
+24
+00:01:38,037 --> 00:01:40,775
+HashMap and HashSet are not sequenced.
+
+25
+00:01:40,775 --> 00:01:45,748
+Their iteration order is unspecified, so there's no meaningful first.
+
+26
+00:01:45,748 --> 00:01:51,586
+Notes and blog posts claiming Java 21 gave HashMap a firstEntry method are wrong.
+
+27
+00:01:51,586 --> 00:01:56,415
+PriorityQueue is excluded too, because its iteration is heap order.
+
+28
+00:01:57,315 --> 00:01:59,040
+Now it's one vocabulary.
+
+29
+00:01:59,040 --> 00:02:03,641
+getLast works on a list, a deque, a LinkedHashSet and a TreeSet.
+
+30
+00:02:03,641 --> 00:02:11,331
+The LinkedHashSet case is the big win: it's O of one now, because it keeps a doubly-linked list internally.
+
+31
+00:02:11,781 --> 00:02:14,247
+And the real payoff is generic code.
+
+32
+00:02:14,247 --> 00:02:23,494
+A method can accept any SequencedCollection and take its last element, whether you pass an ArrayList, an ArrayDeque or a LinkedHashSet.
+
+33
+00:02:23,494 --> 00:02:29,659
+Before Java 21, that method couldn't be written, because no type meant ordered collection.
+
+34
+00:02:30,559 --> 00:02:37,452
+The single most important thing about this feature: reversed returns a live, writable view, not a copy.
+
+35
+00:02:37,452 --> 00:02:40,933
+It's O of one to create, however big the collection.
+
+36
+00:02:40,933 --> 00:02:47,559
+But writing through the view changes the original, and changes to the original show up in the view.
+
+37
+00:02:47,559 --> 00:02:48,964
+Exactly like subList.
+
+38
+00:02:48,964 --> 00:02:52,980
+If you need an independent copy, wrap it in a new ArrayList.
+
+39
+00:02:53,430 --> 00:02:55,834
+That makes reverse iteration free.
+
+40
+00:02:55,834 --> 00:02:57,459
+No copy, no allocation.
+
+41
+00:02:57,459 --> 00:03:04,246
+And it finally works on a LinkedHashMap, which had no supported way to iterate backwards before.
+
+42
+00:03:05,146 --> 00:03:06,825
+Here's a practical use.
+
+43
+00:03:06,825 --> 00:03:13,977
+putFirst on a LinkedHashMap inserts a new key at the front, or moves an existing key to the front.
+
+44
+00:03:13,977 --> 00:03:22,005
+Combine it with pollLastEntry to evict the oldest, and a most-recently-used structure is a few readable lines.
+
+45
+00:03:22,005 --> 00:03:28,719
+Before, it meant LinkedHashMap's access-order constructor plus overriding removeEldestEntry.
+
+46
+00:03:29,619 --> 00:03:31,230
+Some operations throw.
+
+47
+00:03:31,230 --> 00:03:39,134
+A TreeSet happily gives you getFirst and a reversed view, but addFirst throws UnsupportedOperationException.
+
+48
+00:03:39,134 --> 00:03:42,867
+And of course immutable lists reject every mutator.
+
+49
+00:03:43,317 --> 00:03:44,279
+That's correct.
+
+50
+00:03:44,279 --> 00:03:50,687
+A sorted collection decides position with its comparator, so insert at the front is a contradiction.
+
+51
+00:03:50,687 --> 00:03:59,595
+Putting it in sorted position instead would make addFirst mean different things on different collections, which defeats a shared interface.
+
+52
+00:04:00,045 --> 00:04:01,615
+And note an asymmetry.
+
+53
+00:04:01,615 --> 00:04:10,967
+getFirst on an empty collection throws, while firstEntry on an empty map returns null, following the older NavigableMap convention.
+
+54
+00:04:11,867 --> 00:04:18,194
+How do you add methods to List in 2023 without breaking every implementation out there?
+
+55
+00:04:18,194 --> 00:04:19,358
+Default methods.
+
+56
+00:04:19,358 --> 00:04:24,085
+getFirst defaults to get zero, and getLast to get size minus one.
+
+57
+00:04:24,085 --> 00:04:26,485
+Third-party lists keep compiling.
+
+58
+00:04:26,485 --> 00:04:29,830
+JDK classes override where they can do better.
+
+59
+00:04:29,830 --> 00:04:34,630
+It's the same mechanism that made Java 8's stream method possible.
+
+60
+00:04:35,080 --> 00:04:37,763
+Deque was already most of the way there.
+
+61
+00:04:37,763 --> 00:04:42,995
+It's had addFirst and getLast since Java 6, with exactly the right signatures.
+
+62
+00:04:43,445 --> 00:04:45,605
+And reversed joins a family.
+
+63
+00:04:45,605 --> 00:04:50,312
+subList, keySet, values, unmodifiableList, Arrays dot asList.
+
+64
+00:04:50,312 --> 00:04:56,793
+Almost everything in java dot util that returns a derived collection returns a view.
+
+65
+00:04:56,793 --> 00:05:01,962
+The copies are the ones with copy, or a constructor, in their name.
+
+66
+00:05:02,862 --> 00:05:04,109
+Production rules.
+
+67
+00:05:04,109 --> 00:05:07,995
+Use getFirst and getLast instead of index arithmetic.
+
+68
+00:05:07,995 --> 00:05:10,561
+Use reversed for reverse iteration.
+
+69
+00:05:10,561 --> 00:05:13,715
+Accept SequencedCollection in generic code.
+
+70
+00:05:13,715 --> 00:05:18,041
+Use putFirst and pollLastEntry for most-recently-used maps.
+
+71
+00:05:18,041 --> 00:05:22,147
+And wrap reversed in a constructor when you need a copy.
+
+72
+00:05:22,597 --> 00:05:26,212
+Never expect these methods on HashMap or HashSet.
+
+73
+00:05:26,212 --> 00:05:32,852
+Never treat reversed as a copy, or store the view in a field unless you want the aliasing.
+
+74
+00:05:32,852 --> 00:05:35,287
+Don't call addFirst on a TreeSet.
+
+75
+00:05:35,287 --> 00:05:38,533
+And check for empty before calling getFirst.
+
+76
+00:05:39,433 --> 00:05:40,123
+To recap.
+
+77
+00:05:40,123 --> 00:05:45,183
+Java 21 gave every ordered collection one vocabulary for its ends.
+
+78
+00:05:45,183 --> 00:05:50,856
+HashMap and HashSet aren't included, because they have no encounter order.
+
+79
+00:05:50,856 --> 00:05:54,382
+reversed is an O of one live view, not a copy.
+
+80
+00:05:54,382 --> 00:05:58,292
+And sorted collections correctly throw on addFirst.
+
+81
+00:05:58,742 --> 00:06:03,065
+Next is chapter twenty-two: immutability and defensive copying.
+
+82
+00:06:03,065 --> 00:06:04,438
+Thanks for watching.

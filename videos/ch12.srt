@@ -1,0 +1,387 @@
+1
+00:00:00,600 --> 00:00:04,457
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,457 --> 00:00:07,576
+This is chapter twelve: Java 14 to 17.
+
+3
+00:00:08,026 --> 00:00:16,218
+Four features arrived together and were designed to compose: switch expressions, text blocks, records, and sealed types.
+
+4
+00:00:16,218 --> 00:00:18,198
+Each one removes boilerplate.
+
+5
+00:00:18,198 --> 00:00:24,751
+Together they give Java algebraic data types, which is what makes pattern matching worth having.
+
+6
+00:00:25,651 --> 00:00:34,162
+A value object in Java 8 is a page of mechanical code: fields, a constructor, getters, equals, hashCode and toString.
+
+7
+00:00:34,162 --> 00:00:41,509
+Every line can be got wrong, and when you add a field, equals and hashCode quietly drift out of sync.
+
+8
+00:00:41,509 --> 00:00:45,001
+That's a standing source of bugs in collections.
+
+9
+00:00:45,451 --> 00:00:47,381
+In Java 16, it's one line.
+
+10
+00:00:47,381 --> 00:00:58,891
+A record generates private final fields, a constructor, accessors, and equals, hashCode and toString, all derived from the components, so they can't drift.
+
+11
+00:00:59,791 --> 00:01:04,868
+Here's the through-line: make the compiler able to reason about your data.
+
+12
+00:01:04,868 --> 00:01:08,985
+Switch expressions, in Java 14, make switch produce a value.
+
+13
+00:01:09,435 --> 00:01:13,489
+Text blocks, in 15, give you readable multi-line strings.
+
+14
+00:01:13,939 --> 00:01:18,781
+Records, in 16, tell the compiler: these components are the whole state.
+
+15
+00:01:19,231 --> 00:01:23,455
+And sealed types, in 17, tell it: these are all the cases.
+
+16
+00:01:23,905 --> 00:01:30,031
+Combine a sealed interface with record implementations and you have an algebraic data type.
+
+17
+00:01:30,031 --> 00:01:37,772
+An exhaustive switch over it needs no default, and adding a new case becomes a compile error everywhere it matters.
+
+18
+00:01:38,672 --> 00:01:42,104
+The feature people miss is the compact constructor.
+
+19
+00:01:42,104 --> 00:01:48,228
+It has no parameter list, runs before the fields are assigned, and works on the parameters.
+
+20
+00:01:48,228 --> 00:01:53,073
+So you validate there, and you can normalise by reassigning a parameter.
+
+21
+00:01:53,073 --> 00:01:56,976
+Here, the amount is always stored with two decimal places.
+
+22
+00:01:57,426 --> 00:02:02,825
+And the single most common record bug: records are only shallowly immutable.
+
+23
+00:02:02,825 --> 00:02:07,584
+If a component is a list, whoever passed it in can still change it.
+
+24
+00:02:07,584 --> 00:02:12,059
+Always defensively copy collections in the compact constructor.
+
+25
+00:02:12,059 --> 00:02:16,818
+List dot copyOf also rejects nulls, which is usually what you want.
+
+26
+00:02:17,718 --> 00:02:19,285
+Here's the combination.
+
+27
+00:02:19,285 --> 00:02:23,849
+OrderState is a sealed interface that permits exactly four records.
+
+28
+00:02:23,849 --> 00:02:26,574
+Each state carries exactly its own data.
+
+29
+00:02:26,574 --> 00:02:31,614
+A pending order has no payment reference, because it doesn't have one yet.
+
+30
+00:02:31,614 --> 00:02:37,473
+That removes a whole class of bugs: nullable fields that are only sometimes filled in.
+
+31
+00:02:37,923 --> 00:02:44,123
+Now a switch over the state needs no default, because the compiler knows the set is closed.
+
+32
+00:02:44,123 --> 00:02:50,801
+Add a fifth state, and this method stops compiling, along with every other switch over OrderState.
+
+33
+00:02:50,801 --> 00:02:53,731
+The change surfaces everywhere it needs to.
+
+34
+00:02:54,631 --> 00:02:59,167
+Switch expressions are a different construct, not just nicer syntax.
+
+35
+00:02:59,167 --> 00:03:03,569
+The arrow form never falls through, so there's no forgotten break.
+
+36
+00:03:04,019 --> 00:03:07,907
+It's an expression, so it can initialise a final variable.
+
+37
+00:03:07,907 --> 00:03:13,939
+The old statement form can't, because the compiler can't prove the variable gets assigned.
+
+38
+00:03:14,389 --> 00:03:18,490
+On enums and sealed types, it's checked for exhaustiveness.
+
+39
+00:03:18,490 --> 00:03:20,853
+A missing case is a compile error.
+
+40
+00:03:21,303 --> 00:03:26,530
+And when a branch needs several statements, use a block with yield to produce the value.
+
+41
+00:03:26,980 --> 00:03:27,829
+One warning.
+
+42
+00:03:27,829 --> 00:03:34,196
+Adding a default branch to an enum or sealed switch switches off the exhaustiveness check.
+
+43
+00:03:34,196 --> 00:03:37,239
+A new constant silently falls into default.
+
+44
+00:03:37,239 --> 00:03:40,847
+If you want the compiler's help, leave default out.
+
+45
+00:03:41,747 --> 00:03:44,534
+Text blocks end the quote-counting.
+
+46
+00:03:44,534 --> 00:03:48,595
+A SQL query is just the SQL, between triple quotes.
+
+47
+00:03:48,595 --> 00:03:50,984
+No plus signs, no backslash n.
+
+48
+00:03:51,434 --> 00:03:57,995
+The common leading indentation is stripped automatically, measured against the closing delimiter.
+
+49
+00:03:57,995 --> 00:04:00,971
+So moving that delimiter changes the string.
+
+50
+00:04:00,971 --> 00:04:05,706
+Harmless for SQL, but not for anything whitespace-sensitive like YAML.
+
+51
+00:04:06,156 --> 00:04:13,815
+A backslash at the end of a line joins it to the next, and backslash s keeps a trailing space that would otherwise be removed.
+
+52
+00:04:14,265 --> 00:04:17,327
+And text blocks are literals, not templates.
+
+53
+00:04:17,327 --> 00:04:19,067
+There's no interpolation.
+
+54
+00:04:19,067 --> 00:04:20,806
+Use the formatted method.
+
+55
+00:04:20,806 --> 00:04:24,077
+String templates were proposed, then withdrawn.
+
+56
+00:04:24,077 --> 00:04:25,678
+That's chapter fifteen.
+
+57
+00:04:26,578 --> 00:04:28,886
+Records aren't always right.
+
+58
+00:04:28,886 --> 00:04:31,358
+Never use one as a JPA entity.
+
+59
+00:04:31,358 --> 00:04:39,271
+Entities have identity, mutable state, and lifecycle, and need a no-arg constructor and proxies.
+
+60
+00:04:39,271 --> 00:04:45,287
+Records work great as JPA projections and API DTOs, just not as entities.
+
+61
+00:04:45,737 --> 00:04:49,212
+Don't use one where identity matters more than value.
+
+62
+00:04:49,212 --> 00:04:52,884
+Two connections to the same host aren't interchangeable.
+
+63
+00:04:53,334 --> 00:04:56,742
+And don't let a record grow to fifteen components.
+
+64
+00:04:56,742 --> 00:04:59,810
+Positional construction stops being readable.
+
+65
+00:04:59,810 --> 00:05:02,059
+Use a builder, or split the type.
+
+66
+00:05:02,959 --> 00:05:09,431
+Under the hood, a record's equals, hashCode and toString aren't ordinary generated bytecode.
+
+67
+00:05:09,431 --> 00:05:14,848
+They're invokedynamic call sites, built from the component list at first use.
+
+68
+00:05:14,848 --> 00:05:19,983
+So the class file stays small, and behaviour can't drift from the fields.
+
+69
+00:05:20,433 --> 00:05:27,295
+Sealed types write a permitted subclasses attribute that the JVM enforces at class load time.
+
+70
+00:05:27,295 --> 00:05:33,788
+It's a runtime guarantee, which is what lets the compiler treat exhaustiveness as sound.
+
+71
+00:05:34,238 --> 00:05:39,910
+And an exhaustive switch still gets a hidden default that throws a MatchException.
+
+72
+00:05:39,910 --> 00:05:47,726
+If someone adds a case and recompiles only the interface, your old switch fails loudly instead of returning null.
+
+73
+00:05:47,726 --> 00:05:52,499
+That's also why libraries should be careful about sealing public API.
+
+74
+00:05:53,399 --> 00:05:54,688
+Production rules.
+
+75
+00:05:54,688 --> 00:05:58,629
+Use records for DTOs, value objects and projections.
+
+76
+00:05:58,629 --> 00:06:04,162
+Validate in the compact constructor, and copy every collection component.
+
+77
+00:06:04,162 --> 00:06:08,255
+Model closed domains as a sealed interface of records.
+
+78
+00:06:08,255 --> 00:06:11,741
+Leave default out of sealed and enum switches.
+
+79
+00:06:11,741 --> 00:06:14,925
+And use text blocks for SQL, JSON and XML.
+
+80
+00:06:15,375 --> 00:06:20,732
+Never use a record as a JPA entity, and never assume it's deeply immutable.
+
+81
+00:06:20,732 --> 00:06:24,090
+Never add default to a switch you want checked.
+
+82
+00:06:24,090 --> 00:06:28,519
+Don't use non-sealed casually, since it reopens the hierarchy.
+
+83
+00:06:28,519 --> 00:06:29,876
+Keep records small.
+
+84
+00:06:29,876 --> 00:06:34,233
+And don't trust text-block indentation to survive a reformat.
+
+85
+00:06:35,133 --> 00:06:41,256
+Java 14 made switch an expression, and gave us helpful NullPointerException messages.
+
+86
+00:06:41,706 --> 00:06:44,266
+Java 15 finalised text blocks.
+
+87
+00:06:44,716 --> 00:06:49,367
+Java 16 finalised records, along with instanceof patterns.
+
+88
+00:06:49,817 --> 00:06:55,193
+Java 17 finalised sealed classes, the last piece before pattern matching.
+
+89
+00:06:55,643 --> 00:07:04,667
+Java 21 and 22 delivered pattern matching for switch, record patterns, and the underscore for components you don't need.
+
+90
+00:07:05,117 --> 00:07:13,287
+And Java 25 lets you run statements before calling super, so validation no longer needs static helper methods.
+
+91
+00:07:14,187 --> 00:07:14,789
+To recap.
+
+92
+00:07:14,789 --> 00:07:21,212
+Records are transparent carriers for immutable data, but remember to copy collection components.
+
+93
+00:07:21,212 --> 00:07:27,100
+Sealed interfaces plus records give you closed domains the compiler checks exhaustively.
+
+94
+00:07:27,100 --> 00:07:31,181
+Switch expressions have no fall-through and can yield values.
+
+95
+00:07:31,181 --> 00:07:35,798
+And text blocks strip indentation according to the closing delimiter.
+
+96
+00:07:36,248 --> 00:07:40,642
+Next is chapter thirteen, pattern matching, where all of this pays off.
+
+97
+00:07:40,642 --> 00:07:41,880
+Thanks for watching.

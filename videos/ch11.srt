@@ -1,0 +1,391 @@
+1
+00:00:00,600 --> 00:00:04,241
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,241 --> 00:00:07,107
+This is chapter eleven: Java 9 to 11.
+
+3
+00:00:07,557 --> 00:00:14,089
+Most teams skipped straight through this range to Java 11, the long-term release everyone ran.
+
+4
+00:00:14,089 --> 00:00:17,842
+So its features are widely used and rarely understood.
+
+5
+00:00:17,842 --> 00:00:18,885
+Let's fix that.
+
+6
+00:00:19,785 --> 00:00:23,124
+Java 9 to 11 fixed three unrelated pains.
+
+7
+00:00:23,124 --> 00:00:26,545
+First, the classpath had no encapsulation.
+
+8
+00:00:26,545 --> 00:00:32,654
+Anything public was reachable, including JDK internals never meant for you.
+
+9
+00:00:32,654 --> 00:00:37,705
+Libraries built on them, so every JDK upgrade broke something.
+
+10
+00:00:38,155 --> 00:00:41,369
+Second, every deployment shipped the whole runtime.
+
+11
+00:00:41,369 --> 00:00:45,088
+Over two hundred megabytes for a service that needed forty.
+
+12
+00:00:45,538 --> 00:00:56,247
+And third, HTTP meant the clunky HttpURLConnection or an extra library, with no HTTP/2 and no async.
+
+13
+00:00:57,147 --> 00:01:02,664
+A module declares what it needs and what it exposes, in a module-info file.
+
+14
+00:01:02,664 --> 00:01:04,209
+Requires and exports.
+
+15
+00:01:04,659 --> 00:01:07,438
+That gives two rules instead of one.
+
+16
+00:01:07,438 --> 00:01:10,990
+Readability: A can use B only if A requires B.
+
+17
+00:01:10,990 --> 00:01:16,782
+Accessibility: a public type in B is visible only if B exports its package.
+
+18
+00:01:16,782 --> 00:01:18,867
+Public is no longer enough.
+
+19
+00:01:19,317 --> 00:01:25,152
+Most applications never write a module-info, and that's a defensible choice.
+
+20
+00:01:25,152 --> 00:01:30,450
+But you can't opt out of the fact that the JDK itself is modularised.
+
+21
+00:01:30,450 --> 00:01:34,826
+Its internals are now behind boundaries the JVM enforces.
+
+22
+00:01:35,726 --> 00:01:38,014
+Here's what that feels like.
+
+23
+00:01:38,014 --> 00:01:44,713
+Java 16 strongly encapsulated JDK internals, and Java 17 removed the escape hatch.
+
+24
+00:01:44,713 --> 00:01:55,417
+So a library that reflects into java dot util now fails with an InaccessibleObjectException, even in an app that never modularised.
+
+25
+00:01:55,867 --> 00:01:58,291
+The add-opens flag grants access.
+
+26
+00:01:58,291 --> 00:02:00,936
+But treat it as a temporary measure.
+
+27
+00:02:00,936 --> 00:02:07,843
+Each one is a library reaching into JDK internals, and the real fix is upgrading that library.
+
+28
+00:02:07,843 --> 00:02:13,573
+A startup script that collects add-opens flags over the years is a to-do list.
+
+29
+00:02:14,023 --> 00:02:15,754
+And know the difference.
+
+30
+00:02:15,754 --> 00:02:19,432
+Exports lets other code compile against your types.
+
+31
+00:02:19,432 --> 00:02:25,778
+Opens permits deep reflection, which is what JPA, Jackson and dependency injection need.
+
+32
+00:02:26,678 --> 00:02:31,482
+Here's the module-system benefit most teams actually collect.
+
+33
+00:02:31,482 --> 00:02:34,868
+jdeps lists the JDK modules your jar needs.
+
+34
+00:02:34,868 --> 00:02:38,411
+jlink builds a runtime containing only those.
+
+35
+00:02:38,861 --> 00:02:44,637
+The result is about forty-five megabytes instead of a two-hundred-megabyte JDK.
+
+36
+00:02:44,637 --> 00:02:48,659
+That's smaller container layers and faster cold starts.
+
+37
+00:02:48,659 --> 00:02:52,095
+And it works for a plain classpath application.
+
+38
+00:02:52,095 --> 00:02:54,947
+jlink builds the runtime, not your app.
+
+39
+00:02:55,847 --> 00:03:04,839
+Java 11 standardised a modern HTTP client, with HTTP/2 by default and both blocking and async calls.
+
+40
+00:03:04,839 --> 00:03:11,313
+Build a request with a URI, headers, a timeout and a body, then send it.
+
+41
+00:03:11,763 --> 00:03:18,334
+The client is immutable and thread-safe, so keep one per application in a static final field.
+
+42
+00:03:18,334 --> 00:03:21,726
+Creating one per request leaks connection pools.
+
+43
+00:03:22,176 --> 00:03:24,108
+And notice the two timeouts.
+
+44
+00:03:24,108 --> 00:03:28,593
+Connect timeout on the client only covers opening the connection.
+
+45
+00:03:28,593 --> 00:03:31,767
+The request timeout covers the whole exchange.
+
+46
+00:03:31,767 --> 00:03:35,424
+Set only the first, and a hung read can wait forever.
+
+47
+00:03:36,324 --> 00:03:39,747
+var is type inference, resolved at compile time.
+
+48
+00:03:39,747 --> 00:03:45,311
+The variable still has exactly one static type, and the bytecode is identical.
+
+49
+00:03:45,311 --> 00:03:53,156
+It helps when the right-hand side already names the type, like a constructor call, or a loop over map entries.
+
+50
+00:03:53,606 --> 00:03:55,956
+It hurts when the type disappears.
+
+51
+00:03:55,956 --> 00:03:59,895
+var result equals process input tells the reader nothing.
+
+52
+00:03:59,895 --> 00:04:05,354
+And here's the real trap: var lines equals new ArrayList with an empty diamond.
+
+53
+00:04:05,354 --> 00:04:11,505
+There's nothing to infer from, so you get an ArrayList of Object, and every add compiles.
+
+54
+00:04:11,955 --> 00:04:13,188
+So use this test.
+
+55
+00:04:13,188 --> 00:04:16,672
+Can a reader name the type from that line alone?
+
+56
+00:04:16,672 --> 00:04:20,083
+If not, var has removed information, not noise.
+
+57
+00:04:20,983 --> 00:04:23,134
+Some small APIs worth using.
+
+58
+00:04:23,134 --> 00:04:34,892
+Java 9's collection factories, List dot of, Set dot of and Map dot of, give you truly immutable collections, not a read-only view over something mutable.
+
+59
+00:04:35,342 --> 00:04:39,208
+They reject nulls, not only on creation but on lookup.
+
+60
+00:04:39,208 --> 00:04:42,787
+Even asking whether the list contains null throws.
+
+61
+00:04:43,237 --> 00:04:52,539
+And Set dot of and Map dot of deliberately randomise their iteration order on every JVM run, so your code can't depend on it.
+
+62
+00:04:52,989 --> 00:05:00,715
+Java 11 added isBlank, strip, repeat and lines on strings, plus Files dot readString and writeString.
+
+63
+00:05:00,715 --> 00:05:07,218
+Prefer strip over trim, because trim predates Unicode and misses non-breaking spaces.
+
+64
+00:05:08,118 --> 00:05:12,668
+Three things actually break when you move off Java 8.
+
+65
+00:05:12,668 --> 00:05:17,304
+First, NoClassDefFoundError on javax dot xml dot bind.
+
+66
+00:05:17,304 --> 00:05:21,683
+Java 11 removed JAXB and the other Java EE modules.
+
+67
+00:05:21,683 --> 00:05:25,718
+Add them back as ordinary Jakarta dependencies.
+
+68
+00:05:26,168 --> 00:05:30,814
+Second, InaccessibleObjectException from reflection libraries.
+
+69
+00:05:30,814 --> 00:05:34,936
+Upgrade the library, using add-opens only as a stopgap.
+
+70
+00:05:35,386 --> 00:05:41,151
+Third, anything using sun dot misc dot Unsafe or com dot sun internals.
+
+71
+00:05:41,151 --> 00:05:48,378
+Find the supported replacement, usually VarHandle or the foreign function and memory API.
+
+72
+00:05:48,828 --> 00:05:53,832
+Modularising a service itself is optional, and usually not worth it.
+
+73
+00:05:53,832 --> 00:06:01,927
+But if you ship a library, publish an Automatic-Module-Name, so consumers who do modularise get a stable name.
+
+74
+00:06:02,827 --> 00:06:04,089
+Production rules.
+
+75
+00:06:04,089 --> 00:06:07,951
+One static final HttpClient, with both timeouts set.
+
+76
+00:06:07,951 --> 00:06:10,847
+var only where the line names the type.
+
+77
+00:06:10,847 --> 00:06:15,452
+List dot of and Map dot of for constants, and strip over trim.
+
+78
+00:06:15,452 --> 00:06:18,497
+Use jdeps and jlink for container images.
+
+79
+00:06:18,497 --> 00:06:24,587
+And treat every add-opens flag as a ticket, with a note on which library needs it.
+
+80
+00:06:25,037 --> 00:06:27,906
+Never create an HttpClient per request.
+
+81
+00:06:27,906 --> 00:06:30,701
+Never write var with an empty diamond.
+
+82
+00:06:30,701 --> 00:06:36,659
+Never assume the new factories tolerate null, or depend on their iteration order.
+
+83
+00:06:36,659 --> 00:06:42,765
+And never split a package across modules, which fails at launch on the module path.
+
+84
+00:06:43,665 --> 00:06:49,830
+Java 9 brought modules, the collection factories, private interface methods and JShell.
+
+85
+00:06:50,280 --> 00:06:52,008
+Java 10 brought var.
+
+86
+00:06:52,458 --> 00:07:05,045
+Java 11, the long-term release, standardised HttpClient, added the string and file helpers and single-file source launch, and removed the Java EE modules.
+
+87
+00:07:05,495 --> 00:07:10,380
+Java 16 and 17 closed off JDK internals for good.
+
+88
+00:07:10,830 --> 00:07:17,550
+With Java 21's virtual threads, the simple blocking send call is the natural style again.
+
+89
+00:07:18,000 --> 00:07:21,888
+And Java 26 adds HTTP/3 to the client.
+
+90
+00:07:21,888 --> 00:07:24,037
+That's chapter forty.
+
+91
+00:07:24,937 --> 00:07:25,643
+To recap.
+
+92
+00:07:25,643 --> 00:07:32,226
+The JDK is modularised, so strong encapsulation applies whether you opted in or not.
+
+93
+00:07:32,226 --> 00:07:36,771
+Exports is for compiling against, opens is for reflection.
+
+94
+00:07:36,771 --> 00:07:40,847
+jlink shrinks your runtime, even for classpath apps.
+
+95
+00:07:40,847 --> 00:07:43,825
+Keep one HttpClient with two timeouts.
+
+96
+00:07:43,825 --> 00:07:47,508
+And use var only where the line names the type.
+
+97
+00:07:47,958 --> 00:07:52,007
+Next is chapter twelve: records, sealed types and text blocks.
+
+98
+00:07:52,007 --> 00:07:53,313
+Thanks for watching.

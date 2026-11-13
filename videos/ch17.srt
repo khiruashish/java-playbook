@@ -1,0 +1,387 @@
+1
+00:00:00,600 --> 00:00:03,666
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,666 --> 00:00:07,384
+This is chapter seventeen: choosing the right collection.
+
+3
+00:00:07,834 --> 00:00:12,465
+Most Java code uses ArrayList, HashMap, and occasionally HashSet.
+
+4
+00:00:12,465 --> 00:00:16,313
+That's usually right, which is why the habit persists.
+
+5
+00:00:16,313 --> 00:00:25,647
+And it's why the cases where it's wrong go unnoticed, until something is slow, iterates in a surprising order, or throws on a null.
+
+6
+00:00:26,547 --> 00:00:28,077
+Here are four defects.
+
+7
+00:00:28,077 --> 00:00:34,543
+A membership test on a forty-thousand-element list, inside a loop, so it's quadratic overall.
+
+8
+00:00:34,543 --> 00:00:38,715
+A HashMap exported to CSV, whose order changes between runs.
+
+9
+00:00:38,715 --> 00:00:41,844
+A lookup of null on Map dot of, which throws.
+
+10
+00:00:41,844 --> 00:00:46,572
+And indexed access on a LinkedList, which walks the list every time.
+
+11
+00:00:46,572 --> 00:00:48,241
+None of these is subtle.
+
+12
+00:00:48,241 --> 00:00:50,953
+Each is just one question nobody asked.
+
+13
+00:00:51,853 --> 00:00:53,973
+Ask four questions, in order.
+
+14
+00:00:53,973 --> 00:00:56,824
+First: key-value pairs, or just values?
+
+15
+00:00:56,824 --> 00:00:59,383
+That decides Map versus Collection.
+
+16
+00:00:59,383 --> 00:01:04,354
+Map isn't a Collection at all, because it holds pairs, not elements.
+
+17
+00:01:04,804 --> 00:01:06,931
+Second: are duplicates allowed?
+
+18
+00:01:06,931 --> 00:01:08,921
+That decides List versus Set.
+
+19
+00:01:09,371 --> 00:01:11,308
+Third: what order do you need?
+
+20
+00:01:11,308 --> 00:01:14,214
+Insertion order, sorted order, or don't care.
+
+21
+00:01:14,664 --> 00:01:17,348
+Fourth: will it be accessed concurrently?
+
+22
+00:01:17,348 --> 00:01:19,443
+Plain, concurrent, or immutable.
+
+23
+00:01:19,893 --> 00:01:24,163
+Answer those and the implementation is almost always decided.
+
+24
+00:01:24,163 --> 00:01:31,583
+Most wrong choices come from skipping question three, and mistaking unspecified order for insertion order.
+
+25
+00:01:32,483 --> 00:01:34,876
+Here's the cheat sheet by intent.
+
+26
+00:01:34,876 --> 00:01:37,921
+A sequence with indexed access: ArrayList.
+
+27
+00:01:37,921 --> 00:01:40,531
+A queue, stack or deque: ArrayDeque.
+
+28
+00:01:40,531 --> 00:01:48,144
+For uniqueness, HashSet when order doesn't matter, LinkedHashSet for insertion order, TreeSet for sorted.
+
+29
+00:01:48,144 --> 00:01:51,116
+The same three-way split applies to maps.
+
+30
+00:01:51,116 --> 00:01:53,582
+EnumMap and EnumSet for enum keys.
+
+31
+00:01:53,582 --> 00:01:58,367
+PriorityQueue when you always want the highest priority item next.
+
+32
+00:01:58,367 --> 00:02:01,484
+ConcurrentHashMap for a shared mutable map.
+
+33
+00:02:01,484 --> 00:02:06,632
+And List dot of, Set dot of and Map dot of for small fixed collections.
+
+34
+00:02:07,532 --> 00:02:09,752
+Two tables people actually need.
+
+35
+00:02:09,752 --> 00:02:14,956
+Nulls: TreeSet and TreeMap keys reject null, because they must be compared.
+
+36
+00:02:14,956 --> 00:02:16,482
+ArrayDeque rejects it.
+
+37
+00:02:16,482 --> 00:02:24,322
+ConcurrentHashMap rejects null keys and values, so swapping it in for a HashMap can break code that stored nulls.
+
+38
+00:02:24,322 --> 00:02:32,023
+And the immutable factories reject nulls so strictly that even contains null throws instead of returning false.
+
+39
+00:02:32,473 --> 00:02:38,310
+Order: HashMap and HashSet order is unspecified, and changes as the map grows.
+
+40
+00:02:38,310 --> 00:02:43,399
+Set dot of and Map dot of randomise it on every JVM run, on purpose.
+
+41
+00:02:43,399 --> 00:02:46,093
+And PriorityQueue is the sneaky one.
+
+42
+00:02:46,093 --> 00:02:49,536
+It's a heap, so iterating it gives heap order.
+
+43
+00:02:49,536 --> 00:02:52,679
+Only repeated poll gives you sorted order.
+
+44
+00:02:52,679 --> 00:02:55,598
+That often looks right on small inputs.
+
+45
+00:02:56,498 --> 00:02:57,200
+Two fixes.
+
+46
+00:02:57,200 --> 00:03:01,974
+If a collection exists only to answer, is this in it, make it a Set.
+
+47
+00:03:01,974 --> 00:03:08,082
+Change one word, and a forty-thousand-element scan per cart line becomes a hash lookup.
+
+48
+00:03:08,532 --> 00:03:13,273
+And choose TreeMap for range queries, not just sorted iteration.
+
+49
+00:03:13,273 --> 00:03:15,866
+Every slot between nine and twelve.
+
+50
+00:03:15,866 --> 00:03:18,682
+The next slot at or after ten fifteen.
+
+51
+00:03:18,682 --> 00:03:20,756
+The last one before closing.
+
+52
+00:03:20,756 --> 00:03:25,497
+A HashMap can't answer any of those without scanning everything.
+
+53
+00:03:25,497 --> 00:03:28,905
+The log n cost buys a whole category of query.
+
+54
+00:03:29,805 --> 00:03:35,503
+For enum keys, EnumMap and EnumSet are strictly better than the hash versions.
+
+55
+00:03:35,503 --> 00:03:39,593
+EnumMap is an array indexed by ordinal, with no hashing.
+
+56
+00:03:39,593 --> 00:03:47,409
+EnumSet is a bitset, so a set of up to sixty-four constants is a single long, and contains is one bit test.
+
+57
+00:03:47,409 --> 00:03:50,477
+They're underused only because habit wins.
+
+58
+00:03:50,927 --> 00:03:54,591
+And know the difference between a copy and a view.
+
+59
+00:03:54,591 --> 00:03:57,156
+List dot copyOf is a real snapshot.
+
+60
+00:03:57,156 --> 00:04:06,317
+Collections dot unmodifiableList is a read-only view, so the caller can't write, but sees every later change to the original.
+
+61
+00:04:06,317 --> 00:04:08,442
+For accessors, return a copy.
+
+62
+00:04:09,342 --> 00:04:12,903
+Four collections never to use in new code.
+
+63
+00:04:12,903 --> 00:04:16,294
+Vector synchronises every single method.
+
+64
+00:04:16,294 --> 00:04:17,904
+It's from Java 1.0.
+
+65
+00:04:17,904 --> 00:04:19,091
+Use ArrayList.
+
+66
+00:04:19,541 --> 00:04:23,378
+Hashtable has the same problem, and rejects nulls too.
+
+67
+00:04:23,378 --> 00:04:26,859
+Use HashMap, or ConcurrentHashMap if it's shared.
+
+68
+00:04:27,309 --> 00:04:32,619
+Stack extends Vector, and iterates from the bottom up, the opposite of pop order.
+
+69
+00:04:32,619 --> 00:04:33,602
+Use ArrayDeque.
+
+70
+00:04:34,052 --> 00:04:40,173
+And LinkedList is almost always slower than ArrayList, because of poor cache locality.
+
+71
+00:04:40,173 --> 00:04:42,095
+The next chapter shows why.
+
+72
+00:04:42,995 --> 00:04:44,111
+A few internals.
+
+73
+00:04:44,111 --> 00:04:47,391
+Declare fields as interfaces, like List or Map.
+
+74
+00:04:47,391 --> 00:04:56,883
+Then you can switch to LinkedHashMap when order starts to matter, or ConcurrentHashMap when it becomes shared, without touching callers.
+
+75
+00:04:57,333 --> 00:05:03,208
+ArrayList implements a marker interface called RandomAccess, and LinkedList doesn't.
+
+76
+00:05:03,208 --> 00:05:08,383
+Generic code that index-loops over any List is quadratic on a linked list.
+
+77
+00:05:08,833 --> 00:05:14,585
+Fail-fast iterators throw ConcurrentModificationException on a best-effort basis.
+
+78
+00:05:14,585 --> 00:05:18,348
+It's a bug detector, not a synchronisation mechanism.
+
+79
+00:05:18,798 --> 00:05:19,708
+And sizing.
+
+80
+00:05:19,708 --> 00:05:26,821
+new HashMap of n takes a capacity, not a count, so it resizes at seventy-five percent.
+
+81
+00:05:26,821 --> 00:05:32,281
+Java 19's HashMap dot newHashMap of n does the arithmetic for you.
+
+82
+00:05:33,181 --> 00:05:34,439
+Production rules.
+
+83
+00:05:34,439 --> 00:05:36,142
+Ask the four questions.
+
+84
+00:05:36,142 --> 00:05:44,212
+Use a Set for membership tests, TreeMap and TreeSet for range queries, and EnumMap and EnumSet for enum keys.
+
+85
+00:05:44,212 --> 00:05:46,359
+Return copies from accessors.
+
+86
+00:05:46,359 --> 00:05:49,394
+And use ArrayDeque for stacks and queues.
+
+87
+00:05:49,844 --> 00:05:55,811
+Never rely on HashMap or HashSet order, or on Set dot of and Map dot of order.
+
+88
+00:05:55,811 --> 00:05:58,870
+Never call contains null on List dot of.
+
+89
+00:05:58,870 --> 00:06:03,001
+Never iterate a PriorityQueue expecting sorted output.
+
+90
+00:06:03,001 --> 00:06:05,831
+Never use Vector, Hashtable or Stack.
+
+91
+00:06:05,831 --> 00:06:09,044
+And don't reach for LinkedList by default.
+
+92
+00:06:09,944 --> 00:06:10,610
+To recap.
+
+93
+00:06:10,610 --> 00:06:15,498
+Ask four questions: key-value, duplicates, order, and concurrency.
+
+94
+00:06:15,498 --> 00:06:20,829
+Use a Set for membership, TreeMap for ranges, and EnumMap for enum keys.
+
+95
+00:06:20,829 --> 00:06:27,864
+Remember that unspecified order is not insertion order, and know which collections reject null.
+
+96
+00:06:28,314 --> 00:06:34,224
+Next is chapter eighteen, list internals, where we look inside ArrayList and LinkedList.
+
+97
+00:06:34,224 --> 00:06:35,567
+Thanks for watching.
