@@ -7,6 +7,16 @@ tags: [testing, mockito, test-doubles]
 
 # Mockito & Test Doubles
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch42.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch42.vtt">
+</video>
+<figcaption>Video walkthrough · 6:19 · subtitles via CC · <a href="../../videos/ch42.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [JUnit 5](41-junit5.md)
