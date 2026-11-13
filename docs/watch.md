@@ -80,3 +80,4 @@ Narrated 1080p slide walkthroughs, one per chapter, with English subtitles. Each
 | Ch | Chapter | Length | Download |
 |---|---|---|---|
 | 41 | [JUnit 5](06-testing/41-junit5.md) | 5:33 | <a href="../videos/ch41.mp4" download>MP4</a> · <a href="../videos/ch41.srt" download>SRT</a> |
+| 42 | [Mockito & Test Doubles](06-testing/42-mockito.md) | 6:19 | <a href="../videos/ch42.mp4" download>MP4</a> · <a href="../videos/ch42.srt" download>SRT</a> |
