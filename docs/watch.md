@@ -6,6 +6,14 @@ title: Videos
 
 Narrated 1080p slide walkthroughs, one per chapter, with English subtitles. Each video also plays at the top of its chapter page — click a chapter to watch it there.
 
+## Platform
+
+| Ch | Chapter | Length | Download |
+|---|---|---|---|
+| 01 | [The JDK Landscape (8 → 26)](01-platform/01-jdk-landscape.md) | 7:50 | <a href="../videos/ch01.mp4" download>MP4</a> · <a href="../videos/ch01.srt" download>SRT</a> |
+| 02 | [JVM Runtime Model](01-platform/02-jvm-runtime-model.md) | 7:28 | <a href="../videos/ch02.mp4" download>MP4</a> · <a href="../videos/ch02.srt" download>SRT</a> |
+| 03 | [The Toolchain](01-platform/03-toolchain.md) | 6:01 | <a href="../videos/ch03.mp4" download>MP4</a> · <a href="../videos/ch03.srt" download>SRT</a> |
+
 ## Java 8
 
 | Ch | Chapter | Length | Download |

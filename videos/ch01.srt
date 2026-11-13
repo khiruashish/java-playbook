@@ -1,0 +1,347 @@
+1
+00:00:00,600 --> 00:00:04,529
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:04,529 --> 00:00:09,795
+This is chapter one: the JDK landscape, from Java 8 to Java 26.
+
+3
+00:00:10,245 --> 00:00:14,422
+Which Java should we use has become a genuinely hard question.
+
+4
+00:00:14,422 --> 00:00:30,725
+There are feature releases every six months, long-term-support releases every two years, a dozen vendor builds of the same source, and a licensing history confusing enough that many teams stayed on Java 8 for a decade rather than work it out.
+
+5
+00:00:31,625 --> 00:00:34,340
+Three symptoms of the same confusion.
+
+6
+00:00:34,340 --> 00:00:45,272
+Version paralysis: a team still on Java 8 in 2026 is twelve years behind, missing virtual threads, records, pattern matching and a decade of GC work.
+
+7
+00:00:45,272 --> 00:00:55,471
+And licence fear: Oracle changed its terms twice, and teams who read one announcement but not the next concluded that Java costs money now.
+
+8
+00:00:55,471 --> 00:00:57,673
+For most builds, that's false.
+
+9
+00:00:58,123 --> 00:01:01,097
+The third symptom arrives in production.
+
+10
+00:01:01,097 --> 00:01:03,253
+UnsupportedClassVersionError.
+
+11
+00:01:03,253 --> 00:01:07,639
+The service was built on Java 21 and deployed onto Java 17.
+
+12
+00:01:07,639 --> 00:01:15,595
+The build passed, the tests passed, and the failure showed up at startup, in the environment that mattered.
+
+13
+00:01:16,495 --> 00:01:20,313
+Since Java 9, the JDK ships on a release train.
+
+14
+00:01:20,763 --> 00:01:26,238
+A feature release leaves every March and September, with whatever is ready.
+
+15
+00:01:26,238 --> 00:01:29,962
+Features that aren't ready wait for the next train.
+
+16
+00:01:29,962 --> 00:01:38,065
+Long-term-support releases come every two years since Java 17, which is why 21 and 25 are only two years apart.
+
+17
+00:01:38,515 --> 00:01:40,660
+And here's the subtle part.
+
+18
+00:01:40,660 --> 00:01:43,759
+LTS is a vendor concept, not a JDK one.
+
+19
+00:01:43,759 --> 00:01:51,783
+OpenJDK produces a release, and vendors choose which ones to support for years with backported fixes.
+
+20
+00:01:51,783 --> 00:01:57,345
+The industry coordinates on the same ones, so LTS is real in practice.
+
+21
+00:01:57,345 --> 00:02:03,304
+But no part of the JDK behaves differently because a release is called LTS.
+
+22
+00:02:04,204 --> 00:02:08,716
+Every mainstream JDK is built from the same OpenJDK source.
+
+23
+00:02:08,716 --> 00:02:13,610
+Temurin, Corretto, Microsoft's build, Zulu, Red Hat's, Oracle's.
+
+24
+00:02:13,610 --> 00:02:21,868
+They differ in support duration, licence and platform coverage, not in the language or the standard library.
+
+25
+00:02:21,868 --> 00:02:25,921
+A correct program behaves identically on all of them.
+
+26
+00:02:26,371 --> 00:02:30,394
+So choose on support and licensing, not on capability.
+
+27
+00:02:30,394 --> 00:02:34,417
+Corretto if you're on AWS, Microsoft's build on Azure.
+
+28
+00:02:34,417 --> 00:02:40,153
+And for most teams, the honest answer is Temurin, and stop thinking about it.
+
+29
+00:02:41,053 --> 00:02:43,643
+Here's the licensing history.
+
+30
+00:02:43,643 --> 00:02:48,199
+Before 2019, Oracle's JDK was free for general use.
+
+31
+00:02:48,649 --> 00:02:55,959
+In 2019, with Java 11, Oracle's own build started to need a paid subscription for production.
+
+32
+00:02:55,959 --> 00:02:59,103
+That's the change that caused the alarm.
+
+33
+00:02:59,553 --> 00:03:07,524
+In 2021, with Java 17, Oracle's build became free again under its no-fee terms, with conditions.
+
+34
+00:03:07,524 --> 00:03:13,419
+That reversal got far less attention, which is why the belief persists.
+
+35
+00:03:13,869 --> 00:03:21,656
+And throughout, every OpenJDK build has been free under GPL version two with the Classpath Exception.
+
+36
+00:03:22,106 --> 00:03:29,884
+The Classpath Exception is the clause that lets your proprietary code link against the JDK without becoming GPL.
+
+37
+00:03:29,884 --> 00:03:33,703
+So it's free, including in production and commercially.
+
+38
+00:03:33,703 --> 00:03:38,981
+Oracle's own build is the only one where you need to read the current terms.
+
+39
+00:03:39,881 --> 00:03:47,282
+Every class file records a major version, and the rule is simple: Java version plus forty-four.
+
+40
+00:03:47,282 --> 00:03:51,879
+Fifty-two for Java 8, sixty-five for 21, sixty-nine for 25.
+
+41
+00:03:51,879 --> 00:03:57,645
+A JVM refuses any class file with a higher major version than it supports.
+
+42
+00:03:57,645 --> 00:04:03,177
+That's exactly the sixty-five versus sixty-one in our production error.
+
+43
+00:04:03,627 --> 00:04:09,615
+To check the version at runtime, use Runtime dot version, and ask for the feature number.
+
+44
+00:04:09,615 --> 00:04:12,980
+Don't parse the java dot version property by hand.
+
+45
+00:04:12,980 --> 00:04:18,901
+It changed format from one point eight to nine, and old build scripts still break on it.
+
+46
+00:04:19,801 --> 00:04:22,885
+Targeting an older JDK has a classic trap.
+
+47
+00:04:22,885 --> 00:04:33,312
+Minus source eight, minus target eight sets the language level and the bytecode version, but still compiles against the current JDK's library.
+
+48
+00:04:33,312 --> 00:04:39,407
+So Stream dot toList compiles happily, then fails on Java 8 with NoSuchMethodError.
+
+49
+00:04:39,857 --> 00:04:42,042
+The release flag fixes this.
+
+50
+00:04:42,042 --> 00:04:51,953
+The JDK ships the historical API signatures of each release in a file called ct dot sym, and the compiler checks against those.
+
+51
+00:04:51,953 --> 00:04:55,153
+The same mistake becomes a compile error.
+
+52
+00:04:55,603 --> 00:04:58,668
+In Maven, that's the compiler release property.
+
+53
+00:04:58,668 --> 00:05:01,341
+There's no reason to use the older flags.
+
+54
+00:05:02,241 --> 00:05:06,743
+Declare the JDK instead of inheriting it from the machine.
+
+55
+00:05:06,743 --> 00:05:16,833
+Gradle toolchains are the strongest option: Gradle downloads the specified JDK, so laptops and CI build with exactly the same one.
+
+56
+00:05:17,283 --> 00:05:20,427
+In container images, pin the patch version.
+
+57
+00:05:20,427 --> 00:05:33,219
+A floating tag like temurin twenty-five j-r-e resolves to whatever is current when the image is pulled, so the JDK can change between a passing CI run and a production deploy.
+
+58
+00:05:33,669 --> 00:05:38,170
+Locally, SDKMAN installs and switches JDKs per shell.
+
+59
+00:05:38,170 --> 00:05:47,170
+And form one habit: run java minus version and mvn minus version before debugging anything version-shaped.
+
+60
+00:05:47,170 --> 00:05:50,907
+Maven often runs on a JDK you didn't expect.
+
+61
+00:05:51,807 --> 00:05:54,643
+Which version should you be on?
+
+62
+00:05:54,643 --> 00:05:57,387
+New services start on Java 25.
+
+63
+00:05:57,387 --> 00:06:01,961
+From 11, go to 21, and from 17, go straight to 25.
+
+64
+00:06:02,411 --> 00:06:04,493
+Java 8 deserves two steps.
+
+65
+00:06:04,493 --> 00:06:05,853
+Land on 17 first.
+
+66
+00:06:05,853 --> 00:06:20,182
+Going eight to twenty-five in one jump combines the module system's encapsulation, the removed Java EE modules, and a decade of library upgrades into one change nobody can bisect.
+
+67
+00:06:20,632 --> 00:06:26,607
+And run the latest non-LTS release in CI, even if production stays on LTS.
+
+68
+00:06:26,607 --> 00:06:36,376
+It surfaces deprecations and removals early, so the next LTS upgrade becomes a confirmation rather than an investigation.
+
+69
+00:06:37,276 --> 00:06:38,645
+Production rules.
+
+70
+00:06:38,645 --> 00:06:41,222
+Default to Java 25 for new work.
+
+71
+00:06:41,222 --> 00:06:43,478
+Always use the release flag.
+
+72
+00:06:43,478 --> 00:06:50,243
+Use a GPL with Classpath Exception build, Temurin unless something points elsewhere.
+
+73
+00:06:50,243 --> 00:06:52,498
+Pin the exact patch version.
+
+74
+00:06:52,498 --> 00:06:55,478
+Let toolchains declare the build JDK.
+
+75
+00:06:55,478 --> 00:06:58,780
+And run the latest non-LTS release in CI.
+
+76
+00:06:59,230 --> 00:07:02,505
+Never use minus source and minus target.
+
+77
+00:07:02,505 --> 00:07:09,545
+Never run a non-LTS release in production without an automated six-month upgrade path.
+
+78
+00:07:09,545 --> 00:07:12,001
+Never use floating image tags.
+
+79
+00:07:12,001 --> 00:07:16,094
+Never assume Oracle's JDK has the OpenJDK licence.
+
+80
+00:07:16,094 --> 00:07:19,369
+And never jump from 8 to 25 in one step.
+
+81
+00:07:20,269 --> 00:07:20,923
+To recap.
+
+82
+00:07:20,923 --> 00:07:25,503
+A feature release every six months, and an LTS every two years.
+
+83
+00:07:25,503 --> 00:07:32,628
+Every mainstream JDK comes from the same source, so choose on support, and Temurin is the default.
+
+84
+00:07:32,628 --> 00:07:37,136
+GPL with the Classpath Exception means free, commercially too.
+
+85
+00:07:37,136 --> 00:07:43,970
+And class file major version is Java plus forty-four, so always compile with the release flag.
+
+86
+00:07:44,420 --> 00:07:47,784
+Next is chapter two: the JVM runtime model.
+
+87
+00:07:47,784 --> 00:07:49,348
+Thanks for watching.

@@ -7,6 +7,16 @@ tags: [platform, jvm, classloading, jit, memory]
 
 # JVM Runtime Model
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch02.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch02.vtt">
+</video>
+<figcaption>Video walkthrough · 7:28 · subtitles via CC · <a href="../../videos/ch02.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [The JDK Landscape](01-jdk-landscape.md)
