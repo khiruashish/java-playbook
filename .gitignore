@@ -4,3 +4,6 @@ __pycache__/
 .cache/
 *.pdf
 code/target/
+tools/video/models/
+tools/video/out/
+tools/video/node_modules/
