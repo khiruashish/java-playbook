@@ -7,6 +7,16 @@ tags: [concurrency, threads, lifecycle]
 
 # Threading Fundamentals
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch24.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch24.vtt">
+</video>
+<figcaption>Video walkthrough · 6:49 · subtitles via CC · <a href="../../videos/ch24.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 !!! example "Try it first"
     **[Concurrency toolkit by example](../07-examples/concurrency-toolkit.md)** — 9 runnable programs: threads, locks, atomics, latches, semaphores, each with its real output.
 

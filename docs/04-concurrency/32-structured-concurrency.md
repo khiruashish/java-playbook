@@ -7,6 +7,16 @@ tags: [concurrency, structured-concurrency, loom, preview]
 
 # Structured Concurrency
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch32.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch32.vtt">
+</video>
+<figcaption>Video walkthrough · 6:22 · subtitles via CC · <a href="../../videos/ch32.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L4 Architect · **Prerequisites:** [Virtual Threads](31-virtual-threads.md), [Executors & Thread Pool Design](28-executors.md), [CompletableFuture](29-completable-future.md)

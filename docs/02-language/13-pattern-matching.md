@@ -7,6 +7,16 @@ tags: [language, pattern-matching, java21]
 
 # Pattern Matching
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch13.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch13.vtt">
+</video>
+<figcaption>Video walkthrough · 7:04 · subtitles via CC · <a href="../../videos/ch13.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L2 Professional · **Prerequisites:** [Java 14–17: Records, Sealed Types](12-java-14-to-17.md)

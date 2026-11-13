@@ -7,6 +7,16 @@ tags: [concurrency, virtual-threads, loom]
 
 # Virtual Threads
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch31.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch31.vtt">
+</video>
+<figcaption>Video walkthrough · 6:51 · subtitles via CC · <a href="../../videos/ch31.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L3 Enterprise · **Prerequisites:** [Threading Fundamentals](24-threading-fundamentals.md), [Executors & Thread Pool Design](28-executors.md)

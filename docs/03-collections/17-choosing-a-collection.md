@@ -7,6 +7,16 @@ tags: [collections, design]
 
 # Choosing the Right Collection
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch17.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch17.vtt">
+</video>
+<figcaption>Video walkthrough · 6:36 · subtitles via CC · <a href="../../videos/ch17.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L1 Foundations · **Prerequisites:** core Java, generics basics

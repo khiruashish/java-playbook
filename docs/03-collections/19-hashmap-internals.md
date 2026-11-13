@@ -7,6 +7,16 @@ tags: [collections, hashing, performance]
 
 # HashMap Internals
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch19.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch19.vtt">
+</video>
+<figcaption>Video walkthrough · 7:26 · subtitles via CC · <a href="../../videos/ch19.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 !!! example "Try it first"
     **[HashMap — how it works inside](../07-examples/hashmap-internals.md)** — 7 runnable programs, including ones that look inside a real HashMap as it resizes and treeifies, each with its real output.
 

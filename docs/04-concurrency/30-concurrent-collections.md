@@ -7,6 +7,16 @@ tags: [concurrency, collections, performance]
 
 # ConcurrentHashMap & Concurrent Collections
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch30.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch30.vtt">
+</video>
+<figcaption>Video walkthrough · 6:17 · subtitles via CC · <a href="../../videos/ch30.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 !!! example "Try it first"
     **[ConcurrentHashMap — how it works inside](../07-examples/concurrenthashmap-internals.md)** — 7 runnable programs showing lost updates, check-then-act races, and the atomic methods that fix them, each with its real output.
 

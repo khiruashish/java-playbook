@@ -7,6 +7,16 @@ tags: [language, generics, erasure, variance]
 
 # Generics in Depth
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch16.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch16.vtt">
+</video>
+<figcaption>Video walkthrough · 7:25 · subtitles via CC · <a href="../../videos/ch16.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L3 Enterprise · **Prerequisites:** core Java, [Collections](../03-collections/17-choosing-a-collection.md)

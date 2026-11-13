@@ -1,0 +1,59 @@
+"""Embed each chapter's video at the top of its handbook page and (re)write docs/watch.md.
+
+usage: python3 tools/video/link_videos.py        (run from the repo root; idempotent)
+
+The MP4/SRT files live in videos/; the deploy workflow copies them into the built
+site and converts the subtitles to WebVTT, so pages reference ../../videos/chNN.*.
+"""
+import re, subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+VIDEOS, DOCS = ROOT / "videos", ROOT / "docs"
+SECTIONS = [("Java 8", range(6, 11)), ("Language", range(11, 17)), ("Collections", range(17, 24)),
+            ("Concurrency", range(24, 34)), ("Runtime", range(34, 41))]
+BLOCK = re.compile(r"<!-- video:start -->.*?<!-- video:end -->\n\n", re.S)
+
+nav = {}
+for line in (ROOT / "mkdocs.yml").read_text().splitlines():
+    m = re.match(r'\s*- "(\d\d) · (.+?)": (\S+\.md)$', line)
+    if m:
+        nav[int(m.group(1))] = (m.group(2), m.group(3))
+
+def length(mp4):
+    s = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(mp4)],
+                       capture_output=True, text=True, check=True).stdout
+    secs = int(float(s))
+    return f"{secs // 60}:{secs % 60:02}"
+
+rows = []
+for section, rng in SECTIONS:
+    rows.append(f"\n## {section}\n\n| Ch | Chapter | Length | Download |\n|---|---|---|---|")
+    for n in rng:
+        key = f"ch{n:02}"
+        mp4 = VIDEOS / f"{key}.mp4"
+        if not mp4.exists() or n not in nav:
+            continue
+        title, rel = nav[n]
+        dur = length(mp4)
+        page = DOCS / rel
+        block = (f'<!-- video:start -->\n<figure class="pb-video">\n'
+                 f'<video controls playsinline preload="metadata">\n'
+                 f'<source src="../../videos/{key}.mp4" type="video/mp4">\n'
+                 f'<track kind="subtitles" srclang="en" label="English" src="../../videos/{key}.vtt">\n'
+                 f'</video>\n'
+                 f'<figcaption>Video walkthrough · {dur} · subtitles via CC · '
+                 f'<a href="../../videos/{key}.mp4" download>Download MP4</a></figcaption>\n'
+                 f'</figure>\n<!-- video:end -->\n\n')
+        text = BLOCK.sub("", page.read_text())
+        text = re.sub(r"^(# .+\n\n)", lambda m: m.group(1) + block, text, count=1, flags=re.M)
+        page.write_text(text)
+        rows.append(f"| {n:02} | [{title}]({rel}) | {dur} | "
+                    f'<a href="../videos/{key}.mp4" download>MP4</a> · <a href="../videos/{key}.srt" download>SRT</a> |')
+
+(DOCS / "watch.md").write_text(
+    "---\ntitle: Videos\n---\n\n# Video Walkthroughs\n\n"
+    "Narrated 1080p slide walkthroughs, one per chapter, with English subtitles. "
+    "Each video also plays at the top of its chapter page — click a chapter to watch it there.\n"
+    + "\n".join(rows) + "\n")
+print(f"embedded {sum(1 for r in rows if r.startswith('| '))} videos")

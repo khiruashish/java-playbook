@@ -7,6 +7,16 @@ tags: [concurrency, async, completablefuture]
 
 # CompletableFuture
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch29.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch29.vtt">
+</video>
+<figcaption>Video walkthrough · 6:11 · subtitles via CC · <a href="../../videos/ch29.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 !!! example "Try it first"
     **[CompletableFuture by example](../07-examples/completablefuture.md)** — 16 runnable programs, from a single supplyAsync to a fan-out with timeouts and fallbacks, each with its real output.
 

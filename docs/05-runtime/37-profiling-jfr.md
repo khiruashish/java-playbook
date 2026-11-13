@@ -7,6 +7,16 @@ tags: [runtime, jfr, profiling, observability]
 
 # Profiling with JFR
 
+<!-- video:start -->
+<figure class="pb-video">
+<video controls playsinline preload="metadata">
+<source src="../../videos/ch37.mp4" type="video/mp4">
+<track kind="subtitles" srclang="en" label="English" src="../../videos/ch37.vtt">
+</video>
+<figcaption>Video walkthrough · 6:20 · subtitles via CC · <a href="../../videos/ch37.mp4" download>Download MP4</a></figcaption>
+</figure>
+<!-- video:end -->
+
 ## 1. Purpose & Audience
 
 **Band:** L3 Enterprise · **Prerequisites:** [JVM Runtime Model](../01-platform/02-jvm-runtime-model.md), [Garbage Collection](34-garbage-collection.md)
