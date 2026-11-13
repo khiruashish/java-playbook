@@ -24,7 +24,8 @@ def frag(inner, step=None, tag="div", cls=""):
 def md(text):
     """Tiny inline markup: `code`, **bold**."""
     import re
-    t = escape(text)
+    from html import unescape
+    t = escape(unescape(text))      # accept "&" or "&amp;" from authors alike
     t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
     t = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", t)
     return t.replace("\n", "<br>")
