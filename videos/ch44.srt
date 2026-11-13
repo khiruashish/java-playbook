@@ -1,0 +1,327 @@
+1
+00:00:00,600 --> 00:00:03,880
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,880 --> 00:00:08,835
+This is chapter forty-four, the final chapter: testing concurrent code.
+
+3
+00:00:09,285 --> 00:00:18,712
+Concurrency bugs are the hardest to test for, because a race needs two threads inside a window a few nanoseconds wide at the same moment.
+
+4
+00:00:18,712 --> 00:00:21,326
+A test that passes proves very little.
+
+5
+00:00:21,326 --> 00:00:28,207
+So the goal is to make that coincidence as likely as possible, and to need it as rarely as possible.
+
+6
+00:00:29,107 --> 00:00:31,318
+Three tests that look reasonable.
+
+7
+00:00:31,318 --> 00:00:35,203
+The first sleeps half a second and hopes the work is done.
+
+8
+00:00:35,203 --> 00:00:41,566
+It's slow on every run, and flaky whenever CI is loaded enough that half a second isn't enough.
+
+9
+00:00:42,016 --> 00:00:48,720
+The second starts two threads that each increment a counter a thousand times, and checks for two thousand.
+
+10
+00:00:48,720 --> 00:00:58,016
+It passes against a counter with no synchronisation at all, most of the time, because the first thread often finishes before the second one starts.
+
+11
+00:00:58,466 --> 00:01:02,801
+And the third mocks the inventory and asserts reserve returns true.
+
+12
+00:01:02,801 --> 00:01:05,065
+It tests nothing about concurrency.
+
+13
+00:01:05,065 --> 00:01:08,365
+The mock is the thing that would have had the race.
+
+14
+00:01:09,265 --> 00:01:10,686
+Think in four layers.
+
+15
+00:01:10,686 --> 00:01:13,732
+First, design: shrink the concurrent surface.
+
+16
+00:01:13,732 --> 00:01:16,305
+It finds nothing, because it prevents.
+
+17
+00:01:16,755 --> 00:01:21,454
+Second, deterministic tests of the logic, with no threads at all.
+
+18
+00:01:21,454 --> 00:01:23,261
+Cheap, fast and reliable.
+
+19
+00:01:23,711 --> 00:01:30,559
+Third, stress tests of the genuinely concurrent part: many threads, released together, checking invariants.
+
+20
+00:01:31,009 --> 00:01:36,321
+And fourth, specialised tools like jcstress for memory-model behaviour.
+
+21
+00:01:36,771 --> 00:01:39,770
+Most of the value is in the first two layers.
+
+22
+00:01:39,770 --> 00:01:50,830
+If concurrency is confined to a few small components and the business logic is testable synchronously, you need stress tests for a handful of classes, not everywhere.
+
+23
+00:01:51,730 --> 00:01:54,206
+Here's the design layer in practice.
+
+24
+00:01:54,206 --> 00:01:59,226
+ReservationPolicy holds the decision: invalid, insufficient, or reserved.
+
+25
+00:01:59,226 --> 00:02:05,347
+It's pure, so it gets ordinary unit tests for every boundary and branch, with no threads.
+
+26
+00:02:05,347 --> 00:02:13,394
+InventoryItem is small, and asks only one concurrent question: does synchronized keep the available count consistent?
+
+27
+00:02:13,394 --> 00:02:16,626
+That's the only class that needs a stress test.
+
+28
+00:02:17,526 --> 00:02:28,503
+If a class takes its Executor as a constructor parameter, a test can pass Runnable colon colon run, an executor that runs each task immediately on the calling thread.
+
+29
+00:02:28,503 --> 00:02:35,777
+Dispatch three orders, and verify three sends, with no sleeping and no polling, because it's already happened.
+
+30
+00:02:35,777 --> 00:02:38,158
+That tests the logic of dispatching.
+
+31
+00:02:38,158 --> 00:02:42,059
+Whether the real pool is concurrent is a separate question.
+
+32
+00:02:42,509 --> 00:02:45,712
+The same idea applies to time and scheduling.
+
+33
+00:02:45,712 --> 00:02:52,685
+Inject the Executor, the Clock and the scheduler, and tests can substitute deterministic versions.
+
+34
+00:02:53,585 --> 00:02:57,828
+When something genuinely is asynchronous, poll with Awaitility.
+
+35
+00:02:57,828 --> 00:03:03,889
+Wait at most five seconds, checking every twenty milliseconds, until the assertion passes.
+
+36
+00:03:04,339 --> 00:03:13,591
+A sleep encodes a guess about how long the work takes, and it's wrong both ways: too long on a fast machine, too short on a loaded one.
+
+37
+00:03:13,591 --> 00:03:16,812
+Polling with a deadline is right in both cases.
+
+38
+00:03:16,812 --> 00:03:22,089
+And set the deadline generously; it only costs time when the test is failing.
+
+39
+00:03:22,989 --> 00:03:25,539
+Now a stress test that really stresses.
+
+40
+00:03:25,539 --> 00:03:32,796
+A thousand units of stock, thirty-two threads, a hundred attempts each, so three thousand two hundred attempts.
+
+41
+00:03:32,796 --> 00:03:39,138
+Every thread waits on a latch, the start gate, and then they're all released at the same instant.
+
+42
+00:03:39,588 --> 00:03:41,435
+Four details make this work.
+
+43
+00:03:41,435 --> 00:03:43,745
+The start gate forces real overlap.
+
+44
+00:03:43,745 --> 00:03:47,176
+More threads than cores keeps the race windows busy.
+
+45
+00:03:47,176 --> 00:03:54,434
+It asserts invariants, exactly a thousand reservations and nothing left, which must hold for any interleaving.
+
+46
+00:03:54,434 --> 00:04:00,570
+And it repeats twenty times with a timeout, so a deadlock fails instead of hanging the build.
+
+47
+00:04:00,570 --> 00:04:04,463
+Remove synchronized, and it fails within a few repetitions.
+
+48
+00:04:05,363 --> 00:04:12,175
+For code that takes several locks, check ThreadMXBean's findDeadlockedThreads during the stress run.
+
+49
+00:04:12,175 --> 00:04:17,352
+It turns a hang into a precise failure that names the threads and the locks.
+
+50
+00:04:17,802 --> 00:04:22,341
+And for memory-model bugs, use jcstress, OpenJDK's own harness.
+
+51
+00:04:22,341 --> 00:04:28,898
+It runs two actors hundreds of millions of times across fresh JVMs and counts each outcome.
+
+52
+00:04:28,898 --> 00:04:36,895
+Here, a non-volatile ready flag was seen as true while the value was still zero fourteen thousand times on ARM.
+
+53
+00:04:36,895 --> 00:04:40,642
+An ordinary test would essentially never catch that.
+
+54
+00:04:40,642 --> 00:04:44,533
+Use it for low-level primitives, not application code.
+
+55
+00:04:45,433 --> 00:04:47,224
+Two reasons races hide.
+
+56
+00:04:47,224 --> 00:04:56,257
+The JIT changes them: hoisting a read out of a loop, or reordering writes, so some bugs exist only in compiled code.
+
+57
+00:04:56,257 --> 00:04:59,761
+That's why stress tests need many iterations.
+
+58
+00:04:59,761 --> 00:05:01,397
+And hardware matters.
+
+59
+00:05:01,397 --> 00:05:10,819
+A two-core x86 CI container is about the least likely place to expose a race, and ARM exposes reorderings that x86 hides.
+
+60
+00:05:11,269 --> 00:05:18,364
+Which means a concurrent test that fails intermittently is usually correctly detecting a real race.
+
+61
+00:05:18,364 --> 00:05:23,380
+Retrying it until it passes converts a detected bug into a hidden one.
+
+62
+00:05:23,380 --> 00:05:29,829
+Quarantine it, raise the threads and iterations until it fails reliably, and fix the code.
+
+63
+00:05:30,729 --> 00:05:31,967
+Production rules.
+
+64
+00:05:31,967 --> 00:05:34,152
+Shrink the concurrent surface.
+
+65
+00:05:34,152 --> 00:05:37,065
+Inject executors, clocks and schedulers.
+
+66
+00:05:37,065 --> 00:05:40,051
+Use a same-thread executor to test logic.
+
+67
+00:05:40,051 --> 00:05:42,964
+Use Awaitility or latches with timeouts.
+
+68
+00:05:42,964 --> 00:05:45,877
+Use a start gate, and assert invariants.
+
+69
+00:05:45,877 --> 00:05:49,737
+And repeat stress tests, with a timeout on every one.
+
+70
+00:05:50,187 --> 00:05:52,978
+Never sleep to wait for asynchronous work.
+
+71
+00:05:52,978 --> 00:05:56,166
+Never start stress threads without a start gate.
+
+72
+00:05:56,166 --> 00:06:00,152
+Never mock the component whose thread safety you're testing.
+
+73
+00:06:00,152 --> 00:06:03,607
+Never retry a flaky concurrent test until it passes.
+
+74
+00:06:03,607 --> 00:06:07,659
+And never conclude code is thread-safe because a test passed.
+
+75
+00:06:08,559 --> 00:06:09,216
+To recap.
+
+76
+00:06:09,216 --> 00:06:12,789
+Less concurrent code beats more concurrent tests.
+
+77
+00:06:12,789 --> 00:06:16,362
+A same-thread executor makes logic deterministic.
+
+78
+00:06:16,362 --> 00:06:18,842
+Poll with a deadline, never sleep.
+
+79
+00:06:18,842 --> 00:06:23,071
+Stress tests need a start gate, invariants and repetition.
+
+80
+00:06:23,071 --> 00:06:26,863
+And an intermittent failure is probably a real race.
+
+81
+00:06:27,313 --> 00:06:33,681
+That completes the handbook's video series, from the JDK landscape to testing concurrent code.
+
+82
+00:06:33,681 --> 00:06:35,036
+Thanks for watching.

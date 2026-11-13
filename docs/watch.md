@@ -82,3 +82,5 @@ Narrated 1080p slide walkthroughs, one per chapter, with English subtitles. Each
 |---|---|---|---|
 | 41 | [JUnit 5](06-testing/41-junit5.md) | 5:33 | <a href="../videos/ch41.mp4" download>MP4</a> · <a href="../videos/ch41.srt" download>SRT</a> |
 | 42 | [Mockito & Test Doubles](06-testing/42-mockito.md) | 6:19 | <a href="../videos/ch42.mp4" download>MP4</a> · <a href="../videos/ch42.srt" download>SRT</a> |
+| 43 | [Integration Testing & Testcontainers](06-testing/43-integration-testing.md) | 6:02 | <a href="../videos/ch43.mp4" download>MP4</a> · <a href="../videos/ch43.srt" download>SRT</a> |
+| 44 | [Testing Concurrent Code](06-testing/44-testing-concurrency.md) | 6:35 | <a href="../videos/ch44.mp4" download>MP4</a> · <a href="../videos/ch44.srt" download>SRT</a> |
