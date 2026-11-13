@@ -1,0 +1,315 @@
+1
+00:00:00,600 --> 00:00:03,921
+Welcome to the Modern Java Enterprise Handbook.
+
+2
+00:00:03,921 --> 00:00:08,515
+This is chapter four: builds, release flags and preview features.
+
+3
+00:00:08,965 --> 00:00:13,250
+A surprising share of Java production failures aren't code at all.
+
+4
+00:00:13,250 --> 00:00:20,847
+They're build configuration: something left undeclared and inherited from whatever machine happened to run the build.
+
+5
+00:00:21,747 --> 00:00:22,996
+Three failures.
+
+6
+00:00:22,996 --> 00:00:28,820
+Works on my machine: a developer builds on Java 25 and CI fails on 21.
+
+7
+00:00:28,820 --> 00:00:35,145
+Or worse, both pass and production fails, because nothing declared a target.
+
+8
+00:00:35,595 --> 00:00:37,755
+A NoSuchMethodError at runtime.
+
+9
+00:00:37,755 --> 00:00:42,564
+Two libraries depend on the same vendor client at different versions.
+
+10
+00:00:42,564 --> 00:00:48,139
+One of them won, silently, and it wasn't the one your code was compiled against.
+
+11
+00:00:48,589 --> 00:00:51,158
+And a preview feature that escapes.
+
+12
+00:00:51,158 --> 00:01:00,407
+Compiled with enable preview, then deployed onto a runtime without the flag, or onto a different JDK where it will never load.
+
+13
+00:01:01,307 --> 00:01:06,129
+There are three separate version decisions, and they're often confused.
+
+14
+00:01:06,129 --> 00:01:08,302
+First, which JDK runs the build.
+
+15
+00:01:08,302 --> 00:01:13,531
+Declare it with a toolchain, rather than inheriting whatever the machine has.
+
+16
+00:01:13,981 --> 00:01:16,577
+Second, which Java version you target.
+
+17
+00:01:16,577 --> 00:01:21,085
+That's the release flag, covering language, bytecode, and the API.
+
+18
+00:01:21,535 --> 00:01:28,606
+And third, which JDK runs in production: the container image, pinned to a patch version.
+
+19
+00:01:28,606 --> 00:01:32,704
+You can build on 25, target 21, and deploy onto 21.
+
+20
+00:01:32,704 --> 00:01:37,365
+What breaks things is leaving any of the three undeclared.
+
+21
+00:01:37,815 --> 00:01:47,673
+Gradle's toolchain is the strongest form: it downloads the declared JDK if it's missing, so a fresh machine produces the same result.
+
+22
+00:01:47,673 --> 00:01:52,343
+Maven toolchains need the JDK already installed and registered.
+
+23
+00:01:53,243 --> 00:01:55,015
+Here's the conflict.
+
+24
+00:01:55,015 --> 00:02:02,459
+The app depends on vendor client 1.0 directly, and on dispatch SDK, which needs 1.2.
+
+25
+00:02:02,909 --> 00:02:11,518
+Maven picks the version nearest the root, so 1.0 wins, and ties at the same depth go to declaration order in the POM.
+
+26
+00:02:11,518 --> 00:02:16,153
+Gradle picks the highest version anyone asked for, so 1.2 wins.
+
+27
+00:02:16,153 --> 00:02:18,508
+Neither considers compatibility.
+
+28
+00:02:18,508 --> 00:02:27,485
+The same graph can resolve differently in each tool, and the failure is a NoSuchMethodError at runtime, not a build error.
+
+29
+00:02:28,385 --> 00:02:30,474
+To diagnose, ask the tool.
+
+30
+00:02:30,474 --> 00:02:38,268
+Maven's dependency tree with an includes filter shows that 1.2 was omitted for conflict with 1.0.
+
+31
+00:02:38,268 --> 00:02:42,849
+Gradle's dependency insight shows the same from its side.
+
+32
+00:02:43,299 --> 00:02:45,655
+Then state the version explicitly.
+
+33
+00:02:45,655 --> 00:02:54,943
+Gradle constraints, or Maven's dependency management, set the version without adding a dependency, and the because clause records why.
+
+34
+00:02:54,943 --> 00:03:00,835
+Adding a direct dependency to fix a conflict works by accident, and hides the reason.
+
+35
+00:03:01,735 --> 00:03:05,527
+A BOM declares a set of versions that work together.
+
+36
+00:03:05,527 --> 00:03:09,756
+Import it, then omit the versions on individual artifacts.
+
+37
+00:03:09,756 --> 00:03:16,028
+That's what prevents mixing JUnit's API from one release with its engine from another.
+
+38
+00:03:16,478 --> 00:03:19,539
+And a reproducible build needs four things.
+
+39
+00:03:19,539 --> 00:03:21,177
+Pinned plugin versions.
+
+40
+00:03:21,177 --> 00:03:27,371
+No version ranges or snapshots, because then the artifact depends on when you built it.
+
+41
+00:03:27,371 --> 00:03:30,575
+A fixed output timestamp for the JAR entries.
+
+42
+00:03:30,575 --> 00:03:36,057
+And the wrapper, so everyone, including CI, uses the same build tool version.
+
+43
+00:03:36,057 --> 00:03:40,542
+The Maven enforcer plugin can check the first two mechanically.
+
+44
+00:03:41,442 --> 00:03:45,300
+Using a preview feature needs the flag in three places.
+
+45
+00:03:45,300 --> 00:03:47,686
+The compiler, and the test runner.
+
+46
+00:03:47,686 --> 00:03:56,525
+Forgetting surefire is the usual mistake: compilation succeeds, and every single test fails with preview features not enabled.
+
+47
+00:03:56,975 --> 00:03:58,575
+And third, at runtime.
+
+48
+00:03:59,025 --> 00:04:01,515
+Put all of it behind a Maven profile.
+
+49
+00:04:01,515 --> 00:04:08,113
+Then removing preview is one commit, and a normal build proves the code still compiles without it.
+
+50
+00:04:09,013 --> 00:04:14,016
+Here's the constraint that decides whether you can use preview at all.
+
+51
+00:04:14,016 --> 00:04:24,593
+A preview class file carries minor version sixty-five five three five, and refuses to load on any JDK other than the exact release that produced it.
+
+52
+00:04:24,593 --> 00:04:26,380
+Not twenty-five or later.
+
+53
+00:04:26,380 --> 00:04:27,237
+Twenty-five.
+
+54
+00:04:27,237 --> 00:04:33,098
+That's deliberate: it's what lets the JDK redesign a preview API between releases.
+
+55
+00:04:33,548 --> 00:04:39,340
+So never publish a library with preview, and not an internal shared library either.
+
+56
+00:04:39,340 --> 00:04:44,225
+A deployed service only with a pinned runtime and a plan to remove it.
+
+57
+00:04:44,225 --> 00:04:48,481
+Scripts and spikes are fine, because rewriting them is cheap.
+
+58
+00:04:49,381 --> 00:04:57,211
+Build in CI across a matrix of JDKs: the LTS you run in production, plus the latest release.
+
+59
+00:04:57,661 --> 00:05:06,948
+The latest release surfaces deprecations, removals and behaviour changes months or years before an LTS upgrade forces them.
+
+60
+00:05:06,948 --> 00:05:11,101
+Let that job fail without blocking merges, but read it.
+
+61
+00:05:12,001 --> 00:05:13,251
+Production rules.
+
+62
+00:05:13,251 --> 00:05:18,618
+Declare the build JDK with a toolchain, and target with the release flag.
+
+63
+00:05:18,618 --> 00:05:21,632
+Commit the wrapper and use it everywhere.
+
+64
+00:05:21,632 --> 00:05:23,691
+Pin plugins and import BOMs.
+
+65
+00:05:23,691 --> 00:05:26,852
+Fix conflicts with constraints, saying why.
+
+66
+00:05:26,852 --> 00:05:30,088
+Set parameters and UTF-8 in a shared parent.
+
+67
+00:05:30,088 --> 00:05:32,587
+And keep preview behind a profile.
+
+68
+00:05:33,037 --> 00:05:37,263
+Never use version ranges or snapshots in anything released.
+
+69
+00:05:37,263 --> 00:05:40,557
+Never publish a library compiled with preview.
+
+70
+00:05:40,557 --> 00:05:43,135
+Never forget the test configuration.
+
+71
+00:05:43,135 --> 00:05:46,787
+Never fix a conflict by adding a direct dependency.
+
+72
+00:05:46,787 --> 00:05:51,299
+And never let the IDE hold compiler settings the build doesn't.
+
+73
+00:05:52,199 --> 00:05:52,821
+To recap.
+
+74
+00:05:52,821 --> 00:05:59,047
+The build JDK, the target version and the production runtime are three separate decisions.
+
+75
+00:05:59,047 --> 00:06:00,292
+Declare all three.
+
+76
+00:06:00,292 --> 00:06:07,970
+Maven picks the nearest version and Gradle the highest, so state versions explicitly with BOMs and constraints.
+
+77
+00:06:07,970 --> 00:06:12,743
+And a preview class file only loads on the one release that built it.
+
+78
+00:06:13,193 --> 00:06:18,073
+Next is chapter five: migration strategy, from Java 8 to 25.
+
+79
+00:06:18,073 --> 00:06:19,699
+Thanks for watching.
