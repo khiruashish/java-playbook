@@ -1,0 +1,43 @@
+name: Publish videos zip
+
+# Zips every chapter video and subtitle in videos/ and attaches it to the
+# "videos" GitHub Release, so the whole set downloads from one link.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["videos/**"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: videos-release
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build zip
+        run: |
+          mkdir -p dist/java-playbook-videos
+          cp videos/*.mp4 videos/*.srt videos/README.md dist/java-playbook-videos/
+          cd dist && zip -0 -r -q java-playbook-videos.zip java-playbook-videos
+          ls -lh java-playbook-videos.zip
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(ls videos/*.mp4 | wc -l)
+          notes="All ${count} narrated chapter videos (1080p MP4) with English subtitles (SRT). Built from commit ${GITHUB_SHA::7}."
+          if gh release view videos >/dev/null 2>&1; then
+            gh release upload videos dist/java-playbook-videos.zip --clobber
+            gh release edit videos --notes "$notes"
+          else
+            gh release create videos dist/java-playbook-videos.zip \
+              --title "Java Playbook videos" --notes "$notes" --target "$GITHUB_SHA"
+          fi
